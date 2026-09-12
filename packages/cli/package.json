@@ -3,24 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "description": "Command-line interface for Buildsmith.",
+  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/AidenHadisi/buildsmith/issues"
+  },
   "license": "MIT",
   "author": {
     "name": "Aiden Hadisi",
     "url": "https://github.com/AidenHadisi"
   },
-  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/packages/cli#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AidenHadisi/buildsmith.git",
     "directory": "packages/cli"
   },
-  "bugs": {
-    "url": "https://github.com/AidenHadisi/buildsmith/issues"
-  },
   "type": "module",
-  "engines": {
-    "bun": ">=1.4.2"
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -32,5 +29,8 @@
   },
   "devDependencies": {
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4.2"
   }
 }

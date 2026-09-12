@@ -3,24 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "description": "Local task board and docs UI for Buildsmith.",
+  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/apps/web#readme",
+  "bugs": {
+    "url": "https://github.com/AidenHadisi/buildsmith/issues"
+  },
   "license": "MIT",
   "author": {
     "name": "Aiden Hadisi",
     "url": "https://github.com/AidenHadisi"
   },
-  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/apps/web#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AidenHadisi/buildsmith.git",
     "directory": "apps/web"
   },
-  "bugs": {
-    "url": "https://github.com/AidenHadisi/buildsmith/issues"
-  },
   "type": "module",
-  "engines": {
-    "bun": ">=1.4.2"
-  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -44,5 +41,8 @@
     "tailwindcss": "4.3.3",
     "typescript": "catalog:",
     "vite": "8.3.0"
+  },
+  "engines": {
+    "bun": ">=1.4.2"
   }
 }

@@ -1,0 +1,77 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`tasks create, get, list, update, move 1`] = `
+"---
+id: <uuid>
+title: Ship store
+column: planning
+order: a0
+createdAt: <iso>
+updatedAt: <iso>
+branch: feat/store
+---
+Updated.
+
+## Acceptance criteria
+
+- create a task
+- move it
+"
+`;
+
+exports[`docs slices notes project assets pipeline docs, slices, notes, project, assets 1`] = `
+"---
+status: draft
+revision: 2
+---
+# Spec v2
+"
+`;
+
+exports[`docs slices notes project assets pipeline docs, slices, notes, project, assets 2`] = `
+"---
+title: Codec
+status: done
+commit: abc123
+---
+Parse frontmatter.
+
+## Criteria
+
+- round-trip YAML
+"
+`;
+
+exports[`docs slices notes project assets pipeline docs, slices, notes, project, assets 3`] = `
+"## <iso> · human · spec · approved
+
+Looks good.
+"
+`;
+
+exports[`docs slices notes project assets pipeline docs, slices, notes, project, assets 4`] = `
+"## Run
+
+
+
+## Check
+
+
+
+## Live test
+
+
+
+## Environment
+
+
+
+## Data safety
+
+
+
+## Lessons
+
+- Always lock around RMW.
+"
+`;

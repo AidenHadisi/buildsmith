@@ -1,0 +1,47 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`records patchRecord keeps YAML comments 1`] = `
+"---
+id: a
+# keep me
+title: world
+---
+
+body
+"
+`;
+
+exports[`records stringifyRecord snapshot 1`] = `
+"---
+id: a
+title: hi
+---
+hello
+"
+`;
+
+exports[`root initRoot then findRoot from a nested cwd 1`] = `
+"columns:
+  - backlog
+  - planning
+  - building
+  - review
+  - done
+verify: ""
+"
+`;
+
+exports[`root initRoot then findRoot from a nested cwd 2`] = `
+"## Run
+
+## Check
+
+## Live test
+
+## Environment
+
+## Data safety
+
+## Lessons
+"
+`;
