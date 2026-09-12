@@ -1,0 +1,36 @@
+{
+  "name": "@buildsmith/store",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Markdown-backed store for Buildsmith tasks, specs, and slices.",
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Hadisi",
+    "url": "https://github.com/AidenHadisi"
+  },
+  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/packages/store#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AidenHadisi/buildsmith.git",
+    "directory": "packages/store"
+  },
+  "bugs": {
+    "url": "https://github.com/AidenHadisi/buildsmith/issues"
+  },
+  "type": "module",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "chokidar": "5.0.0",
+    "write-file-atomic": "8.0.0",
+    "yaml": "2.9.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

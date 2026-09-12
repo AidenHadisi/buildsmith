@@ -1,0 +1,54 @@
+{
+  "name": "buildsmith",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agentic coding pipeline with a local task board, markdown-backed store, and MCP tools.",
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Hadisi",
+    "url": "https://github.com/AidenHadisi"
+  },
+  "homepage": "https://github.com/AidenHadisi/buildsmith#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AidenHadisi/buildsmith.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AidenHadisi/buildsmith/issues"
+  },
+  "keywords": [
+    "mcp",
+    "agents",
+    "cursor",
+    "kanban",
+    "spec-driven-development",
+    "bun"
+  ],
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "workspaces": ["apps/*", "packages/*"],
+  "catalog": {
+    "typescript": "7.0.2",
+    "zod": "4.6.2"
+  },
+  "scripts": {
+    "dev": "bun run --filter @buildsmith/web dev",
+    "check": "oxlint && oxfmt --check",
+    "lint": "oxlint .",
+    "fmt": "oxfmt --write",
+    "fmt:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "release": "bumpp"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "bumpp": "12.3.0",
+    "oxfmt": "0.67.0",
+    "oxlint": "1.82.0",
+    "typescript": "catalog:"
+  }
+}

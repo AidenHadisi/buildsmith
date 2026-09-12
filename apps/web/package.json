@@ -1,0 +1,48 @@
+{
+  "name": "@buildsmith/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local task board and docs UI for Buildsmith.",
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Hadisi",
+    "url": "https://github.com/AidenHadisi"
+  },
+  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/apps/web#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AidenHadisi/buildsmith.git",
+    "directory": "apps/web"
+  },
+  "bugs": {
+    "url": "https://github.com/AidenHadisi/buildsmith/issues"
+  },
+  "type": "module",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@buildsmith/store": "workspace:*",
+    "@hono/zod-validator": "0.9.1",
+    "@modelcontextprotocol/hono": "2.0.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "hono": "4.13.7",
+    "lucide-react": "1.45.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwind-merge": "3.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "catalog:",
+    "vite": "8.3.0"
+  }
+}

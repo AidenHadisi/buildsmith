@@ -1,0 +1,36 @@
+{
+  "name": "@buildsmith/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MCP server for the Buildsmith pipeline.",
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Hadisi",
+    "url": "https://github.com/AidenHadisi"
+  },
+  "homepage": "https://github.com/AidenHadisi/buildsmith/tree/main/packages/mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AidenHadisi/buildsmith.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/AidenHadisi/buildsmith/issues"
+  },
+  "type": "module",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@buildsmith/store": "workspace:*",
+    "@modelcontextprotocol/server": "2.0.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "typescript": "catalog:"
+  }
+}
