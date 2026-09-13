@@ -12,6 +12,7 @@ import {
   readRecord,
   splitSections,
   stringifyRecord,
+  taskIdFromDir,
   withLock,
   writeAtomic,
 } from "./files.ts";
@@ -76,10 +77,16 @@ export async function openStore(cwd: string) {
   }
   const config = await loadConfig(root);
 
-  const taskDir = async (id: string): Promise<string> => {
+  const taskDir = async (ref: string): Promise<string> => {
     const names = await listDir(join(root, "tasks"));
-    const match = names.find((name) => name === id || name.startsWith(`${id}-`));
-    if (!match) throw new Error(`task ${id} not found`);
+    const matches = names.filter((name) => {
+      if (name.startsWith(".")) return false;
+      const id = taskIdFromDir(name);
+      return id === ref || id.startsWith(ref) || id.endsWith(ref);
+    });
+    const [match] = matches;
+    if (!match) throw new Error(`task ${ref} not found`);
+    if (matches.length > 1) throw new Error(`ambiguous task id ${ref}`);
     return join(root, "tasks", match);
   };
 
@@ -123,20 +130,22 @@ export async function openStore(cwd: string) {
         throw new Error(`unknown column ${column}`);
       }
       const dir = await taskDir(id);
+      const afterDir = pos.after ? await taskDir(pos.after) : undefined;
+      const beforeDir = pos.before ? await taskDir(pos.before) : undefined;
       return withLock(dir, async () => {
         const all = await listTasks(root, config);
         const others = all
-          .filter((t) => t.id !== id && t.column === column)
+          .filter((t) => t.dir !== dir && t.column === column)
           .sort((a, b) => a.order.localeCompare(b.order) || a.id.localeCompare(b.id));
-        const after = pos.after ? others.find((t) => t.id === pos.after) : undefined;
-        const before = pos.before ? others.find((t) => t.id === pos.before) : undefined;
-        if (pos.after && !after) {
+        const after = others.find((t) => t.dir === afterDir);
+        const before = others.find((t) => t.dir === beforeDir);
+        if (afterDir && !after) {
           throw new Error(`task ${pos.after} not found in ${column}`);
         }
-        if (pos.before && !before) {
+        if (beforeDir && !before) {
           throw new Error(`task ${pos.before} not found in ${column}`);
         }
-        const indexOf = (task: TaskRecord) => others.findIndex((t) => t.id === task.id);
+        const indexOf = (task: TaskRecord) => others.findIndex((t) => t.dir === task.dir);
         const lo = after ?? (before ? others[indexOf(before) - 1] : others.at(-1));
         const hi = before ?? (after ? others[indexOf(after) + 1] : undefined);
         const order = generateKeyBetween(lo?.order ?? null, hi?.order ?? null);

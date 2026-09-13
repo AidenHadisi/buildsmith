@@ -2,6 +2,7 @@ import { join, relative, resolve } from "node:path";
 import { next, watch, type Store, type TaskRecord } from "@buildsmith/store";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
+import { HTTPException } from "hono/http-exception";
 import { streamSSE } from "hono/streaming";
 
 async function findTask(store: Store, id: string): Promise<TaskRecord | null> {
@@ -9,6 +10,8 @@ async function findTask(store: Store, id: string): Promise<TaskRecord | null> {
     return await store.tasks.get(id);
   } catch (err) {
     if (err instanceof Error && err.message.endsWith("not found")) return null;
+    if (err instanceof Error && err.message.startsWith("ambiguous task id"))
+      throw new HTTPException(400, { res: Response.json({ error: err.message }) });
     throw err;
   }
 }
