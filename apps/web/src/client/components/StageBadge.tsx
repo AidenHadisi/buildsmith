@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge.tsx";
-import type { BoardTask } from "./api.ts";
+import type { BoardTask } from "../api.ts";
 
 type Stage = BoardTask["next"]["stage"];
 

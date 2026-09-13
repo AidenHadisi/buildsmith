@@ -2,10 +2,16 @@
 <html lang="en">
   <head>
     <script>
-      const dark = matchMedia("(prefers-color-scheme: dark)");
-      const apply = () => document.documentElement.classList.toggle("dark", dark.matches);
+      const system = matchMedia("(prefers-color-scheme: dark)");
+      const apply = () => {
+        const stored = localStorage.getItem("theme");
+        document.documentElement.classList.toggle(
+          "dark",
+          stored === "dark" || (stored !== "light" && system.matches),
+        );
+      };
       apply();
-      dark.addEventListener("change", apply);
+      system.addEventListener("change", apply);
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
