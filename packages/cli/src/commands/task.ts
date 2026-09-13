@@ -3,17 +3,20 @@ import { defineCommand } from "citty";
 import { act } from "../io.ts";
 
 const create = defineCommand({
-  meta: { name: "create", description: "Create a task" },
+  meta: {
+    name: "create",
+    description: "Create a task; trailing arguments are acceptance criteria",
+  },
   args: {
     title: { type: "string", description: "Task title", required: true },
     description: { type: "string", description: "Task description" },
   },
-  // criteria are rest positionals (0 declared): args._.slice(0)
+  // undeclared positionals (the criteria) land in args._
   run: act((store, args) =>
     store.tasks.create({
       title: args.title,
       description: args.description ?? "",
-      criteria: args._.slice(0),
+      criteria: args._,
     }),
   ),
 });
@@ -48,7 +51,10 @@ const move = defineCommand({
 });
 
 const update = defineCommand({
-  meta: { name: "update", description: "Update a task" },
+  meta: {
+    name: "update",
+    description: "Update a task; trailing arguments replace its acceptance criteria",
+  },
   args: {
     id: { type: "positional", description: "Task id or unique prefix/suffix", required: true },
     title: { type: "string", description: "Task title" },
@@ -56,7 +62,7 @@ const update = defineCommand({
     branch: { type: "string", description: "Branch name" },
     pr: { type: "string", description: "Pull request URL" },
   },
-  // criteria are rest positionals after 1 declared (id): args._.slice(1); undefined fields are no-ops in the store
+  // args._ holds the declared id first, then the criteria; undefined fields are no-ops in the store
   run: act((store, args) =>
     store.tasks.update(args.id, {
       title: args.title,
@@ -69,6 +75,6 @@ const update = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "task", description: "Create, read, and move tasks" },
+  meta: { name: "task", description: "Create, list, move, and update tasks" },
   subCommands: { create, list, get, move, update },
 });

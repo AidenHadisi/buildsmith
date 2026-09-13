@@ -6,9 +6,7 @@ import { print } from "../io.ts";
 export default defineCommand({
   meta: { name: "init", description: "Create a .buildsmith directory" },
   args: {
-    dir: { type: "positional", description: "Directory to initialise", required: false },
+    dir: { type: "positional", description: "Directory to initialize", required: false },
   },
-  run: async ({ args }) => {
-    print(await initRoot(resolve(args.dir ?? ".")));
-  },
+  run: async ({ args }) => print(await initRoot(resolve(args.dir ?? "."))),
 });

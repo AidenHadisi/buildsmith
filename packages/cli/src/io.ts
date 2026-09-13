@@ -36,15 +36,9 @@ export async function body(file?: string): Promise<string> {
 
 export function print(value: unknown) {
   if (value === undefined) return;
-  if (json) {
-    console.log(JSON.stringify(value, null, 2));
-    return;
-  }
+  if (json) return console.log(JSON.stringify(value, null, 2));
   if (value === null) return;
-  if (typeof value === "string") {
-    console.log(value);
-    return;
-  }
+  if (typeof value === "string") return console.log(value);
   const records = Array.isArray(value) ? value : [value];
   for (const [i, record] of records.entries()) {
     if (i > 0) console.log();
@@ -52,21 +46,22 @@ export function print(value: unknown) {
   }
 }
 
-function printRecord(record: unknown) {
-  for (const [key, val] of Object.entries(record as Record<string, unknown>)) {
+function printRecord(record: object) {
+  for (const [key, val] of Object.entries(record)) {
     if (val === undefined || val === null) continue;
     if (Array.isArray(val)) {
-      const text = val.every((v) => typeof v === "string") ? val.join(", ") : JSON.stringify(val);
-      console.log(`${pc.dim(`${key}:`)} ${text}`);
+      line(key, val.every((v) => typeof v === "string") ? val.join(", ") : JSON.stringify(val));
     } else if (typeof val === "object") {
       for (const [k, v] of Object.entries(val)) {
-        if (v === undefined || v === null) continue;
-        console.log(`${pc.dim(`${key}.${k}:`)} ${typeof v === "object" ? JSON.stringify(v) : v}`);
+        if (v !== undefined && v !== null) line(`${key}.${k}`, v);
       }
-    } else if (typeof val === "string" && val.includes("\n")) {
-      console.log(`${pc.dim(`${key}:`)}\n${val}`);
     } else {
-      console.log(`${pc.dim(`${key}:`)} ${String(val)}`);
+      line(key, val);
     }
   }
+}
+
+function line(key: string, val: unknown) {
+  const text = typeof val === "object" ? JSON.stringify(val) : String(val);
+  console.log(`${pc.dim(`${key}:`)}${text.includes("\n") ? "\n" : " "}${text}`);
 }

@@ -14,6 +14,6 @@ const put = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "asset", description: "Manage task assets" },
+  meta: { name: "asset", description: "Copy files into a task's assets" },
   subCommands: { put },
 });

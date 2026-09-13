@@ -44,13 +44,13 @@ async function setup() {
 }
 
 describe("help", () => {
-  test("root --help lists init, next, task and --json", async () => {
+  test("root --help lists every command group and --json", async () => {
     const { stdout, code } = await run(["--help"], { cwd: await tmp() });
     expect(code).toBe(0);
     expect(stdout).toContain("USAGE");
-    expect(stdout).toContain("init");
-    expect(stdout).toContain("next");
-    expect(stdout).toContain("task");
+    for (const group of ["init", "next", "task", "doc", "slice", "note", "project", "asset"]) {
+      expect(stdout).toContain(group);
+    }
     expect(stdout).toContain("--json");
   });
 

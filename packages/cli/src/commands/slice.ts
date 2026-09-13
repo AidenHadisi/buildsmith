@@ -3,13 +3,16 @@ import { defineCommand } from "citty";
 import { act } from "../io.ts";
 
 const add = defineCommand({
-  meta: { name: "add", description: "Add a slice to a task" },
+  meta: {
+    name: "add",
+    description: "Add a slice to a task; trailing arguments are acceptance criteria",
+  },
   args: {
     id: { type: "positional", description: "Task id or unique prefix/suffix", required: true },
     title: { type: "string", description: "Slice title", required: true },
     goal: { type: "string", description: "Slice goal", required: true },
   },
-  // criteria are rest positionals after 1 declared (id): args._.slice(1)
+  // args._ holds the declared id first, then the criteria
   run: act((store, args) =>
     store.slices.add(args.id, {
       title: args.title,
