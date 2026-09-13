@@ -3,7 +3,7 @@ import { mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initRoot, openStore } from "@buildsmith/store";
-import { print } from "./io.ts";
+import { json, print } from "./io.ts";
 
 const main = join(import.meta.dir, "main.ts");
 const dirs: string[] = [];
@@ -165,8 +165,175 @@ describe("task commands", () => {
   });
 });
 
+describe("doc commands", () => {
+  test("doc write from --file and stdin produce byte-identical spec.md", async () => {
+    const { dir, a, b } = await setup();
+    const content = "# Spec\n\nByte identical body.\n";
+    await Bun.write(join(dir, "f.md"), content);
+
+    const fromFile = await run(["doc", "write", a.id, "spec", "--file", "f.md"], { cwd: dir });
+    expect(fromFile.code).toBe(0);
+    const fromStdin = await run(["doc", "write", b.id, "spec"], { cwd: dir, stdin: content });
+    expect(fromStdin.code).toBe(0);
+
+    const store = await openStore(dir);
+    const specA = join((await store.tasks.get(a.id)).dir, "spec.md");
+    const specB = join((await store.tasks.get(b.id)).dir, "spec.md");
+    expect(await Bun.file(specB).text()).toBe(await Bun.file(specA).text());
+  });
+
+  test("doc write with neither --file nor a piped body fails with empty body", async () => {
+    const { dir, a } = await setup();
+    const { stderr, code } = await run(["doc", "write", a.id, "spec"], { cwd: dir });
+    expect(code).toBe(1);
+    expect(stderr).toContain("empty body");
+  });
+
+  test("doc read before any write prints null and exits 0", async () => {
+    const { dir, a } = await setup();
+    const { stdout, code } = await run(["doc", "read", a.id, "spec"], { cwd: dir });
+    expect(code).toBe(0);
+    expect(stdout.trim()).toBe("null");
+  });
+
+  test("doc status to the same rank prints the store error and exits 1", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    const { stderr, code } = await run(["doc", "status", a.id, "spec", "draft"], { cwd: dir });
+    expect(code).toBe(1);
+    expect(stderr).toContain("cannot move spec status");
+  });
+
+  test("invalid doc kind is rejected with the expected kinds", async () => {
+    const { dir, a } = await setup();
+    const { stderr, code } = await run(["doc", "read", a.id, "bogus"], { cwd: dir });
+    expect(code).toBe(1);
+    expect(stderr).toContain("invalid kind bogus: expected spec|architecture|verification");
+  });
+});
+
+describe("slice commands", () => {
+  test("slice add collects criteria and slice list shows them", async () => {
+    const { dir, a } = await setup();
+    const added = await run(["slice", "add", a.id, "--title", "T", "--goal", "G", "c1", "c2"], {
+      cwd: dir,
+    });
+    expect(added.code).toBe(0);
+    const listed = await run(["slice", "list", a.id], { cwd: dir });
+    expect(listed.code).toBe(0);
+    const slices = JSON.parse(listed.stdout);
+    expect(slices).toHaveLength(1);
+    expect(slices[0].goal).toBe("G");
+    expect(slices[0].criteria).toEqual(["c1", "c2"]);
+  });
+
+  test("slice update sets status and commit", async () => {
+    const { dir, a } = await setup();
+    await run(["slice", "add", a.id, "--title", "T", "--goal", "G"], { cwd: dir });
+    const updated = await run(
+      ["slice", "update", a.id, "1", "--status", "done", "--commit", "abc"],
+      { cwd: dir },
+    );
+    expect(updated.code).toBe(0);
+    const slice = JSON.parse(updated.stdout);
+    expect(slice.status).toBe("done");
+    expect(slice.commit).toBe("abc");
+  });
+});
+
+describe("note commands", () => {
+  test("note add and note list --target round-trip", async () => {
+    const { dir, a } = await setup();
+    const added = await run(
+      ["note", "add", a.id, "--author", "agent", "--target", "spec", "--verdict", "ok"],
+      { cwd: dir, stdin: "Looks good." },
+    );
+    expect(added.code).toBe(0);
+
+    const listed = await run(["note", "list", a.id, "--target", "spec"], { cwd: dir });
+    expect(listed.code).toBe(0);
+    const notes = JSON.parse(listed.stdout);
+    expect(notes).toHaveLength(1);
+    expect(notes[0].author).toBe("agent");
+    expect(notes[0].verdict).toBe("ok");
+    expect(notes[0].body).toContain("Looks good.");
+
+    const other = await run(["note", "list", a.id, "--target", "architecture"], { cwd: dir });
+    expect(JSON.parse(other.stdout)).toEqual([]);
+  });
+});
+
+describe("project commands", () => {
+  test("project write and read round-trip via stdin", async () => {
+    const { dir } = await setup();
+    const written = await run(["project", "write"], { cwd: dir, stdin: "# Project\n\nGoals." });
+    expect(written.code).toBe(0);
+    const read = await run(["project", "read"], { cwd: dir });
+    expect(read.code).toBe(0);
+    expect(JSON.parse(read.stdout)).toBe("# Project\n\nGoals.\n");
+  });
+
+  test("project lesson appends under Lessons", async () => {
+    const { dir } = await setup();
+    const res = await run(["project", "lesson"], { cwd: dir, stdin: "Ship small slices" });
+    expect(res.code).toBe(0);
+    const read = await run(["project", "read"], { cwd: dir });
+    const body = JSON.parse(read.stdout);
+    expect(body).toContain("## Lessons");
+    expect(body).toContain("- Ship small slices");
+  });
+});
+
+describe("asset commands", () => {
+  test("asset put copies a file into the task's assets", async () => {
+    const { dir, a } = await setup();
+    await Bun.write(join(dir, "shot.png"), "png-bytes");
+    const res = await run(["asset", "put", a.id, "shot.png"], { cwd: dir });
+    expect(res.code).toBe(0);
+    expect(JSON.parse(res.stdout)).toBe("assets/shot.png");
+    const store = await openStore(dir);
+    const task = await store.tasks.get(a.id);
+    expect(await Bun.file(join(task.dir, "assets", "shot.png")).text()).toBe("png-bytes");
+  });
+});
+
+describe("pipeline", () => {
+  test("full pipeline drives next to done in a temp repo", async () => {
+    const dir = await tmp();
+    const ok = async (args: string[], stdin?: string) => {
+      const res = await run(args, { cwd: dir, stdin });
+      expect(res.code).toBe(0);
+      return res;
+    };
+
+    await ok(["init"]);
+    const created = await ok(["task", "create", "--title", "Feature"]);
+    const id = JSON.parse(created.stdout).id;
+
+    await ok(["doc", "write", id, "spec"], "# Spec\n");
+    for (const status of ["critiqued", "reviewed", "approved"]) {
+      await ok(["doc", "status", id, "spec", status]);
+    }
+    await ok(["doc", "write", id, "architecture"], "# Architecture\n");
+    for (const status of ["critiqued", "reviewed", "approved"]) {
+      await ok(["doc", "status", id, "architecture", status]);
+    }
+    await ok(["slice", "add", id, "--title", "One", "--goal", "First goal"]);
+    await ok(["slice", "add", id, "--title", "Two", "--goal", "Second goal"]);
+    // next requires every slice done
+    await ok(["slice", "update", id, "1", "--status", "done", "--commit", "abc"]);
+    await ok(["slice", "update", id, "2", "--status", "done", "--commit", "def"]);
+    await ok(["note", "add", id, "--author", "agent", "--target", "spec"], "Reviewed.");
+    await ok(["doc", "write", id, "verification"], "# Verification\n");
+    await ok(["doc", "result", id, "pass"]);
+
+    const res = await ok(["next", id]);
+    expect(JSON.parse(res.stdout).stage).toBe("done");
+  });
+});
+
 describe("print", () => {
-  test("prints nothing for undefined or null", () => {
+  test("prints nothing for undefined; null prints only in JSON mode", () => {
     const calls: unknown[] = [];
     const original = console.log;
     console.log = (...args: unknown[]) => {
@@ -178,6 +345,6 @@ describe("print", () => {
     } finally {
       console.log = original;
     }
-    expect(calls).toEqual([]);
+    expect(calls).toEqual(json ? [["null"]] : []);
   });
 });

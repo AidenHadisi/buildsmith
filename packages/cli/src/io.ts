@@ -20,6 +20,12 @@ export function act<T extends ArgsDef>(
   };
 }
 
+export function asEnum<T extends string>(name: string, value: string, options: readonly T[]): T {
+  const match = options.find((option) => option === value);
+  if (!match) throw new Error(`invalid ${name} ${value}: expected ${options.join("|")}`);
+  return match;
+}
+
 export async function body(file?: string): Promise<string> {
   let text = "";
   if (file) text = await Bun.file(file).text();
@@ -29,11 +35,12 @@ export async function body(file?: string): Promise<string> {
 }
 
 export function print(value: unknown) {
-  if (value === undefined || value === null) return;
+  if (value === undefined) return;
   if (json) {
     console.log(JSON.stringify(value, null, 2));
     return;
   }
+  if (value === null) return;
   if (typeof value === "string") {
     console.log(value);
     return;
