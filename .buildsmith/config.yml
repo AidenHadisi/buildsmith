@@ -1,0 +1,7 @@
+columns:
+  - backlog
+  - planning
+  - building
+  - review
+  - done
+verify: ""

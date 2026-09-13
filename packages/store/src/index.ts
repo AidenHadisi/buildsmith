@@ -1,6 +1,5 @@
 export {
   openStore,
-  taskIdFromDir,
   type PipelineDoc,
   type SliceRecord,
   type Store,

@@ -35,7 +35,6 @@ import {
   type VerificationResult,
 } from "./schema.ts";
 
-const UUID_LEN = 36;
 const DOC_STATUS_RANK: Record<DocStatus, number> = {
   draft: 0,
   critiqued: 1,
@@ -493,8 +492,4 @@ function parseNotes(raw: string): NoteEntry[] {
     if (parsed.success) entries.push(parsed.data);
   }
   return entries;
-}
-
-export function taskIdFromDir(dirName: string): string {
-  return dirName.slice(0, UUID_LEN);
 }

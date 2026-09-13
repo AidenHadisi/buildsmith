@@ -194,6 +194,12 @@ export async function findRoot(cwd: string): Promise<string | null> {
   }
 }
 
+const UUID_LEN = 36;
+
+export function taskIdFromDir(dirName: string): string {
+  return dirName.slice(0, UUID_LEN);
+}
+
 const DEFAULT_CONFIG_YAML = `columns:
   - backlog
   - planning
