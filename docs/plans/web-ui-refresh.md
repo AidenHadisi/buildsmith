@@ -116,6 +116,10 @@ Contain what is likely to change: token values, and how much of `next` the card 
 - StageBadge keep variant+className record · Adopt · Collapse to Record<Stage, string> of token tints; verify is border-info/40 text-info only.
 - Hand-rolled blocked span · Adopt · Badge variant="destructive" with blocked · N.
 - Always show next.action on cards · Adopt · Skip the line when action is "none" (done).
+- Duplicate SheetTitle in loading/error/body branches · Adopt · One always-mounted SheetHeader/SheetTitle in TaskSheet; body is data | ErrorPanel | PulseLines.
+- Duplicate error markup in Board and TaskSheet · Adopt · Shared ErrorPanel with optional onRetry; sheet 404 has no Retry.
+- QueryClient retry: 3 on 404 task ids · Adopt · Do not retry when the error status is < 500 so invalid ?task= shows the designed error quickly.
+- Ghost columns as anonymous pulse bars · Adopt · Reuse the real column shell (w-72 shrink-0 rounded-lg bg-muted/40 p-3) so loaded columns do not reflow.
 
 ## Slice log
 
@@ -127,6 +131,10 @@ Contain what is likely to change: token values, and how much of `next` the card 
   - Criteria: (1) http://localhost:5173 shows a top bar with the anvil icon and the word Buildsmith above the columns. (2) With SSE connected the chip reads Live (token success, not green-600). (3) Five columns and two seed cards still render; no create/edit/move controls.
   - Proven: `bun test` pass; `bun run typecheck` pass; `bun run check` pass. Header bottom 56px, first column heading 92px; h1 Buildsmith; img /icon.png. Chip text Live with `bg-success/10 text-success`, not green-600; `/events` ping. Five columns, MCP server + Web board; no inputs or draggable.
 
-- [x] **Slice 3 — Cards, stage tokens, empty columns** · pending
+- [x] **Slice 3 — Cards, stage tokens, empty columns** · `faa1fab`
   - Criteria: (1) MCP server card shows title, last-6 id, stage, and next.action (skipped when action is none). (2) Cards have visible hover and focus-visible. (3) Empty columns still appear with heading, count 0, and "No tasks". (4) StageBadge uses success/warning/info tokens, not green-600.
   - Proven: `bun test`/`typecheck`/`check` pass. MCP `write-spec e2c0a8 spec`; Web board `work-slice e1b5d5 building`. Hover bg change and 3px focus-visible ring. planning/review/done show 0 and "No tasks". Badge classes `bg-info/10` / `bg-warning/10`; verify `bg-transparent`; no green-600.
+
+- [x] **Slice 4 — Loading and error states** · pending
+  - Criteria: (1) First board load shows header plus five pulsing ghost columns, not a blank page. (2) Board error with no data shows designed ErrorPanel + Retry. (3) Deep link ?task=01a09815-35cb-7313-b058-5656c1e1b5d5 opens a sheet with a SheetTitle. (4) ?task=does-not-exist shows designed error inside the sheet, not raw error.message.
+  - Proven: `bun test`/`typecheck`/`check` pass. Paused /api/board: header + 5 shells / 15 pulse bars. Blocked /api/board: ErrorPanel “Failed to fetch” + Retry; after unblock populated board. Deep link title “Web board”. Invalid id: SheetTitle “Task”, “404 Not Found”, no Retry, 1 request 3ms.

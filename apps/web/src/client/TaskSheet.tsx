@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { api, type TaskDetail } from "./api.ts";
+import { ErrorPanel } from "./ErrorPanel.tsx";
 import { Markdown } from "./Markdown.tsx";
 import { StageBadge } from "./StageBadge.tsx";
 import { useTaskParam } from "./useTaskParam.ts";
@@ -31,8 +32,32 @@ export function TaskSheet() {
         side="right"
         className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-2xl"
       >
-        {error && <p className="p-4">{error.message}</p>}
-        {data && <SheetBody data={data} />}
+        <SheetHeader>
+          <div className="flex items-center gap-2">
+            <SheetTitle>{data?.task.title ?? "Task"}</SheetTitle>
+            {data && <StageBadge stage={data.next.stage} />}
+          </div>
+          {data && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="font-mono">{data.task.id.slice(-6)}</span>
+              {data.task.branch && <LinkOrText value={data.task.branch} />}
+              {data.task.pr && <LinkOrText value={data.task.pr} />}
+            </div>
+          )}
+        </SheetHeader>
+        {data ? (
+          <SheetBody data={data} />
+        ) : error ? (
+          <div className="px-4">
+            <ErrorPanel error={error} />
+          </div>
+        ) : (
+          <div className="space-y-2 px-4">
+            <div className="h-4 w-1/3 animate-pulse rounded-md bg-muted" />
+            <div className="h-4 w-2/3 animate-pulse rounded-md bg-muted" />
+            <div className="h-4 w-1/2 animate-pulse rounded-md bg-muted" />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
@@ -40,47 +65,34 @@ export function TaskSheet() {
 
 function SheetBody({ data }: { data: TaskDetail }) {
   return (
-    <>
-      <SheetHeader>
-        <div className="flex items-center gap-2">
-          <SheetTitle>{data.task.title}</SheetTitle>
-          <StageBadge stage={data.next.stage} />
-        </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="font-mono">{data.task.id.slice(-6)}</span>
-          {data.task.branch && <LinkOrText value={data.task.branch} />}
-          {data.task.pr && <LinkOrText value={data.task.pr} />}
-        </div>
-      </SheetHeader>
-      <Tabs defaultValue="overview" className="px-4 pb-4">
-        <TabsList className="w-full flex-wrap group-data-horizontal/tabs:h-auto">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="spec">Spec</TabsTrigger>
-          <TabsTrigger value="architecture">Architecture</TabsTrigger>
-          <TabsTrigger value="slices">Slices</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="verification">Verification</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="pt-4">
-          <Overview data={data} />
-        </TabsContent>
-        <TabsContent value="spec" className="pt-4">
-          <DocView doc={data.spec} taskId={data.task.id} empty="No spec yet" />
-        </TabsContent>
-        <TabsContent value="architecture" className="pt-4">
-          <DocView doc={data.architecture} taskId={data.task.id} empty="No architecture yet" />
-        </TabsContent>
-        <TabsContent value="slices" className="pt-4">
-          <SliceList slices={data.slices} />
-        </TabsContent>
-        <TabsContent value="notes" className="pt-4">
-          <NoteList notes={data.notes} taskId={data.task.id} />
-        </TabsContent>
-        <TabsContent value="verification" className="pt-4">
-          <DocView doc={data.verification} taskId={data.task.id} empty="No verification yet" />
-        </TabsContent>
-      </Tabs>
-    </>
+    <Tabs defaultValue="overview" className="px-4 pb-4">
+      <TabsList className="w-full flex-wrap group-data-horizontal/tabs:h-auto">
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="spec">Spec</TabsTrigger>
+        <TabsTrigger value="architecture">Architecture</TabsTrigger>
+        <TabsTrigger value="slices">Slices</TabsTrigger>
+        <TabsTrigger value="notes">Notes</TabsTrigger>
+        <TabsTrigger value="verification">Verification</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview" className="pt-4">
+        <Overview data={data} />
+      </TabsContent>
+      <TabsContent value="spec" className="pt-4">
+        <DocView doc={data.spec} taskId={data.task.id} empty="No spec yet" />
+      </TabsContent>
+      <TabsContent value="architecture" className="pt-4">
+        <DocView doc={data.architecture} taskId={data.task.id} empty="No architecture yet" />
+      </TabsContent>
+      <TabsContent value="slices" className="pt-4">
+        <SliceList slices={data.slices} />
+      </TabsContent>
+      <TabsContent value="notes" className="pt-4">
+        <NoteList notes={data.notes} taskId={data.task.id} />
+      </TabsContent>
+      <TabsContent value="verification" className="pt-4">
+        <DocView doc={data.verification} taskId={data.task.id} empty="No verification yet" />
+      </TabsContent>
+    </Tabs>
   );
 }
 
