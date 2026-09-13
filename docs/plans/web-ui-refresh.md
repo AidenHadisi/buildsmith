@@ -110,9 +110,16 @@ Contain what is likely to change: token values, and how much of `next` the card 
 - Slice 1 retune existing surface tokens · Adopt · Additive only this slice: three status tokens + color-scheme; retune surfaces when chrome exists.
 - sips --out without public dir · Adopt · mkdir -p apps/web/public first.
 - Theme script type/placement unspecified · Adopt · Plain (non-module) script, first child of head.
+- Slice 2 initial live=false · Adopt · useState(true) to avoid a red reconnect flash; error flips false if the stream never opens.
+- Slice 2 chip as raw span vs Badge · Adopt · Badge with token tint classes (bg-success/10 text-success vs destructive) to match StageBadge.
+- Close EventSource on error · Reject · Let browser retry; only watchdog closes and reconnects.
 
 ## Slice log
 
-- [x] **Slice 1 — Visual foundation** · pending
+- [x] **Slice 1 — Visual foundation** · `b13a2a2`
   - Criteria: (1) With OS dark, first paint of http://localhost:5173 has class "dark" on html from the inline head script. (2) :root/.dark define --success/--warning/--info (+ foregrounds) and color-scheme; @theme inline maps them. (3) GET /icon.png is image/png; favicon link present. (4) Board still shows five columns and seed tasks Web board + MCP server.
   - Proven: `bun test` 35 pass; `bun run typecheck` pass; `bun run check` pass. GET / served the inline matchMedia script; Chromium emulate dark → `html.dark` and `color-scheme:dark`, emulate light → class cleared. GET /icon.png `Content-Type: image/png` 256×256. GET /api/board five columns + Web board + MCP server. Vite dev prepends HMR module scripts before the inline script; class wiring still holds.
+
+- [x] **Slice 2 — Chrome and live chip** · pending
+  - Criteria: (1) http://localhost:5173 shows a top bar with the anvil icon and the word Buildsmith above the columns. (2) With SSE connected the chip reads Live (token success, not green-600). (3) Five columns and two seed cards still render; no create/edit/move controls.
+  - Proven: `bun test` pass; `bun run typecheck` pass; `bun run check` pass. Header bottom 56px, first column heading 92px; h1 Buildsmith; img /icon.png. Chip text Live with `bg-success/10 text-success`, not green-600; `/events` ping. Five columns, MCP server + Web board; no inputs or draggable.
