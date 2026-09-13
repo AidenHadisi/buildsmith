@@ -142,6 +142,6 @@ Contain what is likely to change: token values, and how much of `next` the card 
   - Criteria: (1) First board load shows header plus five pulsing ghost columns, not a blank page. (2) Board error with no data shows designed ErrorPanel + Retry. (3) Deep link ?task=01a09815-35cb-7313-b058-5656c1e1b5d5 opens a sheet with a SheetTitle. (4) ?task=does-not-exist shows designed error inside the sheet, not raw error.message.
   - Proven: `bun test`/`typecheck`/`check` pass. Paused /api/board: header + 5 shells / 15 pulse bars. Blocked /api/board: ErrorPanel “Failed to fetch” + Retry; after unblock populated board. Deep link title “Web board”. Invalid id: SheetTitle “Task”, “404 Not Found”, no Retry, 1 request 3ms.
 
-- [x] **Slice 5 — Pipeline sheet** · pending
+- [x] **Slice 5 — Pipeline sheet** · `629e6b0`
   - Criteria: (1) Web board Overview leads with Next (action + reason) above description. (2) Spec/Architecture/Slices/Verification tab triggers show a status mark; Notes does not. (3) MCP server empty tabs still show empty copy. (4) All six tabs still reach their documents.
   - Proven: `bun test`/`typecheck`/`check` pass. Overview DOM: H3 Next → work-slice — slice 2 is doing → description. Spec/Architecture checks; Slices 1/3 + warning dot; Verification pending dot; Notes text only. MCP empty copy on all five empty tabs. All six Web board tabs still show their docs.
