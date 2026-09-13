@@ -89,6 +89,14 @@ describe("app", () => {
     expect(res.headers.get("content-type")).toContain("image/png");
   });
 
+  test("GET /tasks/:id/assets/* serves a nested asset path", async () => {
+    const { app, task } = await setup();
+    await mkdir(join(task.dir, "assets", "nested"));
+    await writeFile(join(task.dir, "assets", "nested", "a.png"), Buffer.from(PNG_1X1, "base64"));
+    const res = await app.request(`/tasks/${task.id}/assets/nested/a.png`);
+    expect(res.status).toBe(200);
+  });
+
   test("GET /tasks/:id/assets/* 403s on path traversal", async () => {
     const { app, task } = await setup();
     // A literal `..` is normalized away by the URL parser before routing; %2F survives.

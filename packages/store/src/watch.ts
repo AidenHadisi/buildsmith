@@ -1,8 +1,7 @@
 import { watch as fsWatch } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, join, relative, sep } from "node:path";
-import { wasSelfWrite } from "./files.ts";
-import { taskIdFromDir } from "./store.ts";
+import { taskIdFromDir, wasSelfWrite } from "./files.ts";
 
 export type WatchEvent = { taskId?: string; file: string };
 

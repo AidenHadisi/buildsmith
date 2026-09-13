@@ -4,7 +4,7 @@
 
 `@buildsmith/store` (packages/store) reads and writes a repo's `.buildsmith/` folder: `config.yml`, `project.md`, and one folder per task holding `task.md`, `spec.md`, `architecture.md`, `verification.md`, `slices/NN-slug.md`, `notes.md`, `assets/`. Nothing renders it yet; the only way to see the board is to open the files.
 
-We are adding `apps/web`: a read-only Kanban board over that folder. A Vite SPA (React 19, Tailwind 4, shadcn on Base UI, TanStack Query) talks to a small Hono server on Bun that wraps the store. Columns come from `config.yml`; each card opens a side sheet with Overview / Spec / Architecture / Slices / Notes / Verification, markdown rendered, images served from the task's `assets/`. The server pushes `store.watch()` events over SSE so the page refreshes as the agent edits files. The dev server dogfoods this repo's own committed `.buildsmith/`. Done means the eight acceptance criteria below are proven live and `bun run build` + `bun run start` serve the same board without Vite.
+We are adding `apps/web`: a read-only Kanban board over that folder. A Vite SPA (React 19, Tailwind 4, shadcn on Base UI, TanStack Query) talks to a small Hono server on Bun that wraps the store. Columns come from `config.yml`; each card opens a side sheet with Overview / Spec / Architecture / Slices / Notes / Verification, markdown rendered, images served from the task's `assets/`. The server pushes `watch()` events over SSE so the page refreshes as the agent edits files. The dev server dogfoods this repo's own committed `.buildsmith/`. Done means the eight acceptance criteria below are proven live and `bun run build` + `bun run start` serve the same board without Vite.
 
 ## Requirements
 
@@ -134,6 +134,8 @@ _Append-only. One line per critic objection._
 - Drop `@hono/zod-validator` on `/api/tasks/:id` (pass-through, pulls in zod) · Adopt · id is a string; store throws → 404.
 - Inline `useQuery` instead of `useBoard`/`useTask` single-caller hooks · Adopt · matches "no wrapper hooks without a second caller".
 - Invalidate queries on EventSource `open` · Adopt · `bun --watch` restarts drop events; reconnect must refetch.
+- Post-test: fold `next`/`watch` into the store as methods · Reject · needed `openCore` + `StoreCore` to dodge a circular type; two extra names to save one import.
+- Post-test: asset route uses `/tasks/:id/assets/:path{.+}` (Hono regex param, decoded, spans `/`) instead of slicing `c.req.path`; `taskIdFromDir` moved to `files.ts` to break the `store.ts`↔`watch.ts` cycle · Adopt.
 - `idleTimeout: 255` + 15 s ping unexplained · Adopt · ping every 5 s, no server option.
 - Vite proxy `timeout: 0` for `/events` · Adopt (cut) · heartbeat resets inactivity timers.
 - `realpath` in asset route · Adopt (cut) · `resolve` + `relative` check; 403 vs 404 stay distinct; symlinks not a threat locally.

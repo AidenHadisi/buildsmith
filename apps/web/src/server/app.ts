@@ -50,16 +50,12 @@ export function createApp(store: Store, distDir: string) {
         }
       }),
     )
-    .get("/tasks/:id/assets/*", async (c) => {
+    .get("/tasks/:id/assets/:path{.+}", async (c) => {
       const id = c.req.param("id");
       const task = await findTask(store, id);
       if (!task) return c.json({ error: "task not found" }, 404);
       const assetsDir = join(task.dir, "assets");
-      // hono 4.13 does not capture `*` as a param; slice it off the path instead.
-      const file = resolve(
-        assetsDir,
-        decodeURIComponent(c.req.path.slice(`/tasks/${id}/assets/`.length)),
-      );
+      const file = resolve(assetsDir, c.req.param("path"));
       if (relative(assetsDir, file).startsWith("..")) {
         return c.json({ error: "forbidden" }, 403);
       }
