@@ -41,9 +41,11 @@ export function Board() {
                 <span className="text-muted-foreground">{tasks.length}</span>
               </h2>
               <div className="space-y-2">
-                {tasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
+                {tasks.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No tasks</p>
+                ) : (
+                  tasks.map((task) => <TaskCard key={task.id} task={task} />)
+                )}
               </div>
             </div>
           );

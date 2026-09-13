@@ -113,6 +113,9 @@ Contain what is likely to change: token values, and how much of `next` the card 
 - Slice 2 initial live=false · Adopt · useState(true) to avoid a red reconnect flash; error flips false if the stream never opens.
 - Slice 2 chip as raw span vs Badge · Adopt · Badge with token tint classes (bg-success/10 text-success vs destructive) to match StageBadge.
 - Close EventSource on error · Reject · Let browser retry; only watchdog closes and reconnects.
+- StageBadge keep variant+className record · Adopt · Collapse to Record<Stage, string> of token tints; verify is border-info/40 text-info only.
+- Hand-rolled blocked span · Adopt · Badge variant="destructive" with blocked · N.
+- Always show next.action on cards · Adopt · Skip the line when action is "none" (done).
 
 ## Slice log
 
@@ -120,6 +123,10 @@ Contain what is likely to change: token values, and how much of `next` the card 
   - Criteria: (1) With OS dark, first paint of http://localhost:5173 has class "dark" on html from the inline head script. (2) :root/.dark define --success/--warning/--info (+ foregrounds) and color-scheme; @theme inline maps them. (3) GET /icon.png is image/png; favicon link present. (4) Board still shows five columns and seed tasks Web board + MCP server.
   - Proven: `bun test` 35 pass; `bun run typecheck` pass; `bun run check` pass. GET / served the inline matchMedia script; Chromium emulate dark → `html.dark` and `color-scheme:dark`, emulate light → class cleared. GET /icon.png `Content-Type: image/png` 256×256. GET /api/board five columns + Web board + MCP server. Vite dev prepends HMR module scripts before the inline script; class wiring still holds.
 
-- [x] **Slice 2 — Chrome and live chip** · pending
+- [x] **Slice 2 — Chrome and live chip** · `a2469b6`
   - Criteria: (1) http://localhost:5173 shows a top bar with the anvil icon and the word Buildsmith above the columns. (2) With SSE connected the chip reads Live (token success, not green-600). (3) Five columns and two seed cards still render; no create/edit/move controls.
   - Proven: `bun test` pass; `bun run typecheck` pass; `bun run check` pass. Header bottom 56px, first column heading 92px; h1 Buildsmith; img /icon.png. Chip text Live with `bg-success/10 text-success`, not green-600; `/events` ping. Five columns, MCP server + Web board; no inputs or draggable.
+
+- [x] **Slice 3 — Cards, stage tokens, empty columns** · pending
+  - Criteria: (1) MCP server card shows title, last-6 id, stage, and next.action (skipped when action is none). (2) Cards have visible hover and focus-visible. (3) Empty columns still appear with heading, count 0, and "No tasks". (4) StageBadge uses success/warning/info tokens, not green-600.
+  - Proven: `bun test`/`typecheck`/`check` pass. MCP `write-spec e2c0a8 spec`; Web board `work-slice e1b5d5 building`. Hover bg change and 3px focus-visible ring. planning/review/done show 0 and "No tasks". Badge classes `bg-info/10` / `bg-warning/10`; verify `bg-transparent`; no green-600.

@@ -1,19 +1,27 @@
+import { Badge } from "@/components/ui/badge.tsx";
 import type { BoardTask } from "./api.ts";
 import { StageBadge } from "./StageBadge.tsx";
 import { useTaskParam } from "./useTaskParam.ts";
 
 export function TaskCard({ task }: { task: BoardTask }) {
   const [, setTaskId] = useTaskParam();
+  const blocked = task.next.blocked?.length;
   return (
     <button
       type="button"
       onClick={() => setTaskId(task.id)}
-      className="w-full space-y-2 rounded-md border bg-card p-3 text-left shadow-sm"
+      className="w-full space-y-2 rounded-md border bg-card p-3 text-left shadow-sm transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <p className="text-sm font-medium">{task.title}</p>
+      {task.next.action !== "none" && (
+        <p className="font-mono text-xs text-muted-foreground">{task.next.action}</p>
+      )}
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs text-muted-foreground">{task.id.slice(-6)}</span>
-        <StageBadge stage={task.next.stage} />
+        <span className="flex items-center gap-1">
+          <StageBadge stage={task.next.stage} />
+          {blocked ? <Badge variant="destructive">blocked · {blocked}</Badge> : null}
+        </span>
       </div>
     </button>
   );

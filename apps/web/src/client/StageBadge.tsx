@@ -3,21 +3,15 @@ import type { BoardTask } from "./api.ts";
 
 type Stage = BoardTask["next"]["stage"];
 
-const styles: Record<Stage, { variant: "secondary" | "default" | "outline"; className?: string }> =
-  {
-    spec: { variant: "secondary" },
-    architecture: { variant: "secondary" },
-    slicing: { variant: "default" },
-    building: { variant: "default" },
-    verify: { variant: "outline" },
-    done: { variant: "outline", className: "border-green-600 text-green-600" },
-  };
+const styles: Record<Stage, string> = {
+  spec: "bg-info/10 text-info",
+  architecture: "bg-info/10 text-info",
+  slicing: "bg-warning/10 text-warning",
+  building: "bg-warning/10 text-warning",
+  verify: "border-info/40 bg-transparent text-info",
+  done: "bg-success/10 text-success",
+};
 
 export function StageBadge({ stage }: { stage: Stage }) {
-  const style = styles[stage];
-  return (
-    <Badge variant={style.variant} className={style.className}>
-      {stage}
-    </Badge>
-  );
+  return <Badge className={styles[stage]}>{stage}</Badge>;
 }
