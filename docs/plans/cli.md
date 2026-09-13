@@ -140,12 +140,12 @@ Files: `packages/cli/{package.json,tsconfig.json,src/main.ts,src/io.ts,src/comma
 
 Arg shapes (store signatures): `init [dir]` (default cwd; returns root path; `.buildsmith/project.md` exists after); `next <id>`; `task create --title T [--description D] [criteria…]`; `task list`; `task get <id>`; `task move <id> <column> [--before ref] [--after ref]`; `task update <id> [--title] [--description] [--branch] [--pr] [criteria…]`. Multi-value criteria are rest positionals (`args._.slice(n)`, n = declared positionals) because citty 0.2.2 does not collect repeated flags (last wins) — each leaf comments the slice count.
 
-- [ ] `bunx buildsmith --help` lists `init next task`; `task --help` lists `create list get move update`; `task get --help` shows `id`; root help shows `--json`; unknown command / missing positional → usage on stderr, exit 1, no stack.
-- [ ] `task list` piped → JSON with `column` and `next.stage`; `buildsmith --json task list` and `task list --json` both JSON; in a TTY → text; `task get <A>` equals `/api/tasks/<A>` `.task` and `next <A>` equals `.next`.
-- [ ] Short id ambiguity / not found from the store → one stderr line (`{"error":…}` with `--json`), exit 1.
-- [ ] In a temp dir: `init` → `task create --title X "c1" "c2"` → `task move <id> <col2>` → `task update <id> --branch b` → `task get` shows column, branch and `criteria: ["c1","c2"]`.
-- [ ] Void/`null` results print nothing in both modes (no literal `undefined`), exit 0.
-- [ ] `ls node_modules/.bin/buildsmith` exists after `bun install`; `pino` gone; checks green.
+- [x] Help / usage errors. Proven: `USAGE buildsmith [OPTIONS] init|next|task` with `--json`; `task --help` → `create|list|get|move|update`; `task get --help` → `ID … (Required)`; `bogus` and `task get` → usage + message on stderr, empty stdout, exit 1, zero `at ` lines.
+- [x] Read path. Proven: `task list | jq` → `{MCP server, backlog, spec}`, `{Web board, building, building}`; `--json` before/after → length 2 both; `script -q /dev/null … task get e1b5d5` → `id: …` / `title: Web board` text; `task get`/`next` deep-equal `/api/tasks/<A>` `.task`/`.next` (`{"stage":"building","action":"work-slice",…}`).
+- [x] Short ids. Proven: `task get 01a09815` → stderr `{"error":"ambiguous task id 01a09815"}` (piped) / `ambiguous task id 01a09815` (TTY), exit 1; `nope` → `task nope not found`.
+- [x] Temp repo round-trip. Proven: `init` → `".../tmp.DJQY7miW6f/.buildsmith"`; create/move/update → `task get` `{ "column": "planning", "branch": "b", "criteria": ["c1","c2"] }`. Note: `bunx buildsmith` only resolves inside the repo (workspace bin); outside it use `bun <repo>/packages/cli/src/main.ts`.
+- [x] Void/`null` print nothing. Proven: test `print > prints nothing for undefined or null`; `task update` returns the record and prints it.
+- [x] Wiring. Proven: `node_modules/.bin/buildsmith -> ../@buildsmith/cli/src/main.ts`; `grep -c pino` → 0/0; `check`/`typecheck` (3 workspaces)/`test` (46 pass)/`build` green.
 
 ### Slice 3 — doc/slice/note/project/asset + pipeline
 

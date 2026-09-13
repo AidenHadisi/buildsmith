@@ -1,0 +1,65 @@
+import { openStore, type Store } from "@buildsmith/store";
+import type { ArgsDef, CommandContext, ParsedArgs } from "citty";
+import pc from "picocolors";
+
+export const json = !process.stdout.isTTY || process.argv.includes("--json");
+export const help = process.argv.some((arg) => arg === "--help" || arg === "-h");
+
+export function act<T extends ArgsDef>(
+  fn: (store: Store, args: ParsedArgs<T>) => Promise<unknown>,
+): (context: CommandContext<T>) => Promise<void> {
+  return async ({ args }) => {
+    try {
+      const store = await openStore(process.cwd());
+      print(await fn(store, args));
+    } catch (err) {
+      if (!(err instanceof Error)) throw err;
+      console.error(json ? JSON.stringify({ error: err.message }) : err.message);
+      process.exitCode = 1;
+    }
+  };
+}
+
+export async function body(file?: string): Promise<string> {
+  let text = "";
+  if (file) text = await Bun.file(file).text();
+  else if (!process.stdin.isTTY) text = await Bun.stdin.text();
+  if (!text) throw new Error("empty body: provide --file or pipe a body on stdin");
+  return text;
+}
+
+export function print(value: unknown) {
+  if (value === undefined || value === null) return;
+  if (json) {
+    console.log(JSON.stringify(value, null, 2));
+    return;
+  }
+  if (typeof value === "string") {
+    console.log(value);
+    return;
+  }
+  const records = Array.isArray(value) ? value : [value];
+  for (const [i, record] of records.entries()) {
+    if (i > 0) console.log();
+    printRecord(record);
+  }
+}
+
+function printRecord(record: unknown) {
+  for (const [key, val] of Object.entries(record as Record<string, unknown>)) {
+    if (val === undefined || val === null) continue;
+    if (Array.isArray(val)) {
+      const text = val.every((v) => typeof v === "string") ? val.join(", ") : JSON.stringify(val);
+      console.log(`${pc.dim(`${key}:`)} ${text}`);
+    } else if (typeof val === "object") {
+      for (const [k, v] of Object.entries(val)) {
+        if (v === undefined || v === null) continue;
+        console.log(`${pc.dim(`${key}.${k}:`)} ${typeof v === "object" ? JSON.stringify(v) : v}`);
+      }
+    } else if (typeof val === "string" && val.includes("\n")) {
+      console.log(`${pc.dim(`${key}:`)}\n${val}`);
+    } else {
+      console.log(`${pc.dim(`${key}:`)} ${String(val)}`);
+    }
+  }
+}
