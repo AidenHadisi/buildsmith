@@ -190,7 +190,7 @@ _Append-only._
     3. `rg 'from "\.\./server' apps/web/src/client` shows exactly one `import type` line; `vite build` output contains no `hono/streaming`. Renaming `columns` in `app.ts` fails `bun run typecheck` in the client (revert).
     4. `bun run check`, root `bun run typecheck`, `bun test`, and `bun run build` (writes `dist/`) all pass.
 
-- [x] **Slice 3 — Task detail sheet** · `SLICE3_SHA`
+- [x] **Slice 3 — Task detail sheet** · `81803c3`
   - Proven: sheet opens with `?task=<A>`, survives reload, closes via Escape/X/backdrop clearing the param; Overview shows description, 8 criteria, `work-slice — slice 2 is doing`; Spec shows `approved`/`revision 2`, GFM table, 3 checkboxes, code block, image `naturalWidth 64` fetched 200 `image/png`; Slices done/doing/todo with `4b5b604`; 3 notes (`critic · spec · revise` …); Verification `pending`; MCP server shows `write-spec — spec does not exist` and all empty states; blocking slice 2 on disk showed `Blocked #2 Board client` in 0.65 s, revert cleared it in 1.9 s; sheet widened to 672 px with all six tabs visible.
   - Criteria:
     1. Clicking "Web board" opens the right-side sheet; URL becomes `?task=01a09815-35cb-7313-b058-5656c1e1b5d5`; reload reopens it; closing (X / Escape / backdrop) removes the param.
@@ -200,7 +200,8 @@ _Append-only._
     5. With A's sheet open, setting slice 2 `status: blocked` on disk shows it under Overview → blocked within ~1 s; revert restores.
     6. `bun run check`, root `typecheck`, `bun test`, `bun run build` pass (no new tests expected).
 
-- [ ] **Slice 4 — Production serve + repo wiring**
+- [x] **Slice 4 — Production serve + repo wiring** · `SLICE4_SHA`
+  - Proven: `bun run start` from root → `/` 200 `text/html`, `/assets/index-*.js` 200 `text/javascript`, `/nope` 404, `/api/nope` JSON 404, path-as-is traversal 404; board and sheet render at :3000 with Spec image `naturalWidth 64`; `bun apps/web/src/server/index.ts` from root also serves `/`; 31 tests (4 new static tests on a temp dist), check/typecheck/build green; CI has the build step.
   - Criteria:
     1. `bun run build && bun run start` at the repo root → `curl -si :3000/` 200 `text/html`; `/assets/<hash>.js` 200 `text/javascript`; browser at :3000 renders the board, opens a sheet, Spec image loads; `/nope` → 404; `/api/nope` → JSON 404; `--path-as-is /tasks/<A>/assets/../../config.yml` → 4xx.
     2. From the repo root, `bun apps/web/src/server/index.ts` also serves `/` (dist path independent of cwd).

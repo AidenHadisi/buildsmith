@@ -31,6 +31,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --filter @buildsmith/web dev",
+    "build": "bun run --filter @buildsmith/web build",
+    "start": "bun run --filter @buildsmith/web start",
     "check": "oxlint && oxfmt --check",
     "lint": "oxlint .",
     "fmt": "oxfmt --write",

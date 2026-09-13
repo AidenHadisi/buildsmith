@@ -1,6 +1,7 @@
 import { join, relative, resolve } from "node:path";
 import { next, watch, type Store, type TaskRecord } from "@buildsmith/store";
 import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
 
 async function findTask(store: Store, id: string): Promise<TaskRecord | null> {
@@ -12,7 +13,7 @@ async function findTask(store: Store, id: string): Promise<TaskRecord | null> {
   }
 }
 
-export function createApp(store: Store) {
+export function createApp(store: Store, distDir: string) {
   return new Hono()
     .get("/api/board", async (c) => {
       const list = await store.tasks.list();
@@ -65,7 +66,8 @@ export function createApp(store: Store) {
       const f = Bun.file(file);
       if (!(await f.exists())) return c.json({ error: "not found" }, 404);
       return new Response(f);
-    });
+    })
+    .use("*", serveStatic({ root: distDir }));
 }
 
 export type AppType = ReturnType<typeof createApp>;

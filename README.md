@@ -44,6 +44,15 @@ bun run check        # lint + format check
 bun test
 ```
 
+## Web board
+
+```sh
+bun run dev                    # http://localhost:5173 (Vite proxies to Hono on :3000)
+bun run build && bun run start # production: http://localhost:3000
+```
+
+The server finds `.buildsmith/` by walking up from the cwd; set `BUILDSMITH_ROOT=<dir>` to override.
+
 ## License
 
 [MIT](LICENSE) © Aiden Hadisi

@@ -1,7 +1,8 @@
 ## Run
 
 - `bun install`
-- `bun run dev` — Hono on http://localhost:3000 and Vite on http://localhost:5173
+- Dev: `bun run dev` — Vite on http://localhost:5173 (proxies to Hono on :3000)
+- Prod: `bun run build && bun run start` — http://localhost:3000
 
 ## Check
 
@@ -11,8 +12,8 @@
 
 ## Live test
 
-- Dev: `cd apps/web && bun run dev`, open http://localhost:5173 (Vite proxies `/api`, `/events`, `/tasks` to :3000)
-- Prod: `cd apps/web && bun run build && bun run start`, open http://localhost:3000
+- Dev: `bun run dev`, open http://localhost:5173 (Vite proxies `/api`, `/events`, `/tasks` to :3000)
+- Prod: `bun run build && bun run start`, open http://localhost:3000
 - Data: the repo's own `.buildsmith/`; `BUILDSMITH_ROOT` overrides the cwd lookup
 
 ## Environment

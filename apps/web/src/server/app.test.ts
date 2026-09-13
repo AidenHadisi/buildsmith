@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initRoot, openStore } from "@buildsmith/store";
@@ -29,7 +29,9 @@ async function setup() {
   await store.slices.add(task.id, { title: "One", goal: "g", criteria: ["c"] });
   await store.notes.add(task.id, { author: "critic", target: "spec", body: "Tighten this." });
   await store.assets.put(task.id, "pixel.png", Buffer.from(PNG_1X1, "base64"));
-  return { store, task, app: createApp(store) };
+  const distDir = join(dir, "dist");
+  await mkdir(distDir, { recursive: true });
+  return { store, task, distDir, app: createApp(store, distDir) };
 }
 
 describe("app", () => {
@@ -108,5 +110,35 @@ describe("app", () => {
     const res = await app.request("/tasks/nope/assets/x.png");
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "task not found" });
+  });
+
+  test("GET / serves dist index.html as text/html", async () => {
+    const { app, distDir } = await setup();
+    await writeFile(join(distDir, "index.html"), "<h1>board</h1>");
+    const res = await app.request("/");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+  });
+
+  test("GET /assets/a.js serves dist files as text/javascript", async () => {
+    const { app, distDir } = await setup();
+    await mkdir(join(distDir, "assets"));
+    await writeFile(join(distDir, "assets", "a.js"), "console.log(1)");
+    const res = await app.request("/assets/a.js");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/javascript");
+  });
+
+  test("GET /nope 404s when dist has no match", async () => {
+    const { app } = await setup();
+    const res = await app.request("/nope");
+    expect(res.status).toBe(404);
+  });
+
+  test("GET /api/nope still 404s as json", async () => {
+    const { app } = await setup();
+    const res = await app.request("/api/nope");
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "not found" });
   });
 });
