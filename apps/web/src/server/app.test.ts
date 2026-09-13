@@ -67,6 +67,15 @@ describe("app", () => {
     expect(await res.json()).toEqual({ error: "task not found" });
   });
 
+  test("GET /api/tasks/:id 400s on an ambiguous id", async () => {
+    const { app, store } = await setup();
+    const other = await store.tasks.create({ title: "Other", description: "d" });
+    const prefix = other.id.slice(0, 8);
+    const res = await app.request(`/api/tasks/${prefix}`);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: `ambiguous task id ${prefix}` });
+  });
+
   test("GET /api/tasks/:id 500s on a corrupt task.md", async () => {
     const { app, task } = await setup();
     await writeFile(join(task.dir, "task.md"), "---\nnot: [valid\n---\n");

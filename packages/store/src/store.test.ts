@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initRoot } from "./files.ts";
@@ -56,6 +56,27 @@ describe("tasks", () => {
     expect(freeze(await readFile(join(a.dir, "task.md"), "utf8"))).toMatchSnapshot();
   });
 
+  test("get by unique prefix, suffix, or full id", async () => {
+    const { store } = await setup();
+    const a = await store.tasks.create({ title: "A", description: "a" });
+    expect(await store.tasks.get(a.id.slice(0, 8))).toMatchObject({ id: a.id });
+    expect(await store.tasks.get(a.id.slice(-12))).toMatchObject({ id: a.id });
+    expect(await store.tasks.get(a.id)).toMatchObject({ id: a.id });
+  });
+
+  test("get rejects ambiguous and unknown refs and ignores dot entries", async () => {
+    const { store } = await setup();
+    const a = await store.tasks.create({ title: "A", description: "a" });
+    await store.tasks.create({ title: "B", description: "b" });
+    await mkdir(join(store.root, "tasks", ".lock"));
+    await writeFile(join(store.root, "tasks", ".DS_Store"), "");
+    const shared = a.id.slice(0, 8); // uuidv7 timestamp prefix common to both tasks
+    expect(store.tasks.get(shared)).rejects.toThrow(`ambiguous task id ${shared}`);
+    expect(store.tasks.get("nope")).rejects.toThrow("task nope not found");
+    expect(store.tasks.get(".lock")).rejects.toThrow("task .lock not found");
+    expect(store.tasks.get("Store")).rejects.toThrow("task Store not found");
+  });
+
   test("move with before/after", async () => {
     const { store } = await setup();
     const a = await store.tasks.create({ title: "A", description: "a" });
@@ -63,6 +84,19 @@ describe("tasks", () => {
     const c = await store.tasks.create({ title: "C", description: "c" });
     await store.tasks.move(c.id, "backlog", { after: a.id, before: b.id });
     expect((await store.tasks.list()).map((t) => t.id)).toEqual([a.id, c.id, b.id]);
+  });
+
+  test("move with short ids", async () => {
+    const { store } = await setup();
+    const a = await store.tasks.create({ title: "A", description: "a" });
+    const b = await store.tasks.create({ title: "B", description: "b" });
+    const shortA = a.id.slice(-12);
+    const shortB = b.id.slice(-12);
+    await store.tasks.move(shortA, "backlog", { after: shortB });
+    expect((await store.tasks.list()).map((t) => t.id)).toEqual([b.id, a.id]);
+    expect(store.tasks.move(shortA, "backlog", { after: shortA })).rejects.toThrow(
+      "not found in backlog",
+    );
   });
 
   test("rejects an unknown column", async () => {

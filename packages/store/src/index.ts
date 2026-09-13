@@ -10,6 +10,12 @@ export {
 export { findRoot, initRoot } from "./files.ts";
 export { next, type NextAction } from "./next.ts";
 export { watch, type WatchEvent } from "./watch.ts";
+export {
+  docKindSchema,
+  docStatusSchema,
+  sliceStatusSchema,
+  verificationResultSchema,
+} from "./schema.ts";
 export type {
   Config,
   DocKind,
