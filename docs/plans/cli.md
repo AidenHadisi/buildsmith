@@ -28,19 +28,19 @@
 Frozen on approval. A box is checked only with evidence from a live run. All writes against this repo's `.buildsmith/` are reverted with `git checkout -- .buildsmith`; pipeline runs use a temp repo.
 
 - [x] **Discoverable** — proof: `bunx buildsmith --help` lists every command group; `bunx buildsmith task --help` and `bunx buildsmith doc write --help` document args and flags; unknown command or missing required arg → usage on stderr, exit 1.
-  Evidence: `USAGE buildsmith [OPTIONS] init|next|task|doc|slice|note|project|asset` + `--json`; `doc write --help` → `KIND Document kind (spec|architecture|verification) (Required)`, `--file=<file>`; `bogus` → stderr usage + `Unknown command bogus`, exit 1; `task get` → `Missing required positional argument: ID`, exit 1, empty stdout.
+      Evidence: `USAGE buildsmith [OPTIONS] init|next|task|doc|slice|note|project|asset` + `--json`; `doc write --help` → `KIND Document kind (spec|architecture|verification) (Required)`, `--file=<file>`; `bogus` → stderr usage + `Unknown command bogus`, exit 1; `task get` → `Missing required positional argument: ID`, exit 1, empty stdout.
 - [x] **Board read path** — proof: `bunx buildsmith task list | jq` returns the two seed tasks with `column` and `next.stage`; `task get <A>` and `next <A>` agree with `GET /api/tasks/<A>`; the same commands in a TTY print text, not JSON.
-  Evidence: `{MCP server, backlog, spec}`, `{Web board, building, building}`; `task get`/`next` deep-equal API `.task`/`.next` (`{"stage":"building","action":"work-slice","reason":"slice 2 is doing"}`); pty run → `id: 01a09815-…` / `title: Web board` / `stage: building`.
+      Evidence: `{MCP server, backlog, spec}`, `{Web board, building, building}`; `task get`/`next` deep-equal API `.task`/`.next` (`{"stage":"building","action":"work-slice","reason":"slice 2 is doing"}`); pty run → `id: 01a09815-…` / `title: Web board` / `stage: building`.
 - [x] **Full pipeline via CLI** — proof: in a temp dir: `init` → `task create` → `doc write spec` (stdin) → `doc status` to `critiqued`, `reviewed`, `approved` → `doc write architecture` + approve → `slice add` ×2 → `slice update 1 --status done --commit abc` → `note add` → `doc write verification` → `doc result pass`; `next` reports stage `done`; the web server with `BUILDSMITH_ROOT=<tmp>` serves that task at `/api/tasks/<id>`.
-  Evidence: 17 steps exit 0 in `bs-c3-jZyaGx`; `next` → `{"stage":"done","action":"none","reason":"all pipeline steps complete"}`; `createApp(openStore(tmp)).request("/api/tasks/01a0990e-…")` → 200, `next.stage: "done"` (port 3000 held by another session, so the app was exercised in-process).
+      Evidence: 17 steps exit 0 in `bs-c3-jZyaGx`; `next` → `{"stage":"done","action":"none","reason":"all pipeline steps complete"}`; `createApp(openStore(tmp)).request("/api/tasks/01a0990e-…")` → 200, `next.stage: "done"` (port 3000 held by another session, so the app was exercised in-process).
 - [x] **Short ids** — proof: `task get e1b5d5` resolves task A; `task get 01a09815` (matches both seeds) → stderr "ambiguous", exit 1; `task get nope` → stderr not found, exit 1.
-  Evidence: `e1b5d5` → `"title": "Web board"`, exit 0; `01a09815` → `{"error":"ambiguous task id 01a09815"}`, exit 1; `nope` → `{"error":"task nope not found"}`, exit 1.
+      Evidence: `e1b5d5` → `"title": "Web board"`, exit 0; `01a09815` → `{"error":"ambiguous task id 01a09815"}`, exit 1; `nope` → `{"error":"task nope not found"}`, exit 1.
 - [x] **Store errors surface cleanly** — proof: `doc status <A> spec draft` → stderr contains `cannot move spec status`, exit 1; with `--json`, stderr is `{"error":"..."}`; no stack trace in either.
-  Evidence: stderr exactly `{"error":"cannot move spec status from draft to draft"}` piped and with `--json`, `at ` count 0, exit 1; pty → plain `cannot move spec status from draft to draft`.
+      Evidence: stderr exactly `{"error":"cannot move spec status from draft to draft"}` piped and with `--json`, `at ` count 0, exit 1; pty → plain `cannot move spec status from draft to draft`.
 - [x] **Body input** — proof: `doc write <id> spec --file f.md` and `cat f.md | buildsmith doc write <id> spec` yield byte-identical `spec.md` bodies; with a TTY stdin and no `--file` → usage error, exit 1.
-  Evidence: `cmp` exit 0 (63 bytes each), body `# Spec\n\nByte identical body.\n`; pty stdin without `--file` → `empty body: provide --file or pipe a body on stdin`, exit 1, no `spec.md` written.
+      Evidence: `cmp` exit 0 (63 bytes each), body `# Spec\n\nByte identical body.\n`; pty stdin without `--file` → `empty body: provide --file or pipe a body on stdin`, exit 1, no `spec.md` written.
 - [x] **Green checks** — proof: `bun run check`, `bun run typecheck`, `bun test` (incl. CLI spawn tests), root `bun run build` pass; `ls node_modules/.bin/buildsmith` exists after `bun install`.
-  Evidence: all four green, `58 pass 0 fail`; `node_modules/.bin/buildsmith -> ../@buildsmith/cli/src/main.ts`.
+      Evidence: all four green, `58 pass 0 fail`; `node_modules/.bin/buildsmith -> ../@buildsmith/cli/src/main.ts`.
 
 ## Architecture
 
