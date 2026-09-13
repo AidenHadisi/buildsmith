@@ -159,15 +159,39 @@ _Append-only. One line per critic objection._
 - Slice 2: make "type-only import" observable · Adopt · `rg` check + build output contains no `hono/streaming`.
 - Slice 2: no `@types/node`; use `import.meta.dirname` · Adopt.
 - Slice 1 live test: Bun normalizes `/assets/../../config.yml` to `/tasks/config.yml` before routing (404); encoded `..%2F..` hits the guard (403). With an SPA fallback the normalized path would return `index.html` 200 and break the frozen 4xx check · Adopt · drop the SPA fallback entirely — the app has only `/` (+ query), so `serveStatic({ root })` alone serves `/` and `/assets/*`; everything else stays 404.
+- Slice 2 live test: after a `bun --watch` restart the page stayed stale. Root cause: Vite 8.3's proxy pipes the upstream SSE body with `pipe(res, { end: true })` and skips `res.end()` once headers are sent, so a killed upstream never closes the browser stream; `EventSource` sits OPEN forever and never reconnects (verified: `curl -N :5173/events` goes silent, `:3000/events` gets `transfer closed`) · Adopt · client watchdog in `useLiveRefresh`: 15 s without `ping`/`change` → close + reconnect; `open` invalidates. Restart proof must rewrite the file (`touch` does not trigger `bun --watch`).
+- Slice 2 review: watchdog may `connect()` after unmount · Reject · the timer callback runs to completion synchronously (`close` + reassign `source`), so cleanup always closes the current source; no window for a leak.
+- Slice 3: `useTaskParam` via `pushState` + re-dispatched `popstate`, `useSyncExternalStore`; no emitter, no prop drilling · Adopt.
+- Slice 3: `skipToken` instead of `enabled: !!id` · Adopt · narrows id for free, sheet stays mounted for exit animation.
+- Slice 3: `@tailwindcss/typography` (`prose`) instead of hand-styled markdown · Adopt · one dev dep beats 20+ lines of tuning.
+- Slice 3: `toLocaleString()` not `Intl.RelativeTimeFormat`; assert `image/png`; exact `write-spec` text; live blocked-slice check; `DocView` gets an optional header; `TaskCard` button `w-full text-left`; pushState on close is fine (Back reopens) · Adopt.
+- Slice 3: `ScrollArea` unused → delete `scroll-area.tsx`; `overflow-y-auto` on sheet content · Adopt.
 
 ## Slice log
 
 _Append-only._
 
-- [ ] **Slice 1 — Server + dogfood data**
+- [x] **Slice 1 — Server + dogfood data** · `34de206`
+  - Proven: `bun run check`/`typecheck` green, 9 route tests pass; live `curl /api/board` → 5 columns, A building/building, B backlog/spec; `/api/tasks/<A>` → spec approved rev 2, 3 slices, 3 notes; `/api/tasks/nope` 404 JSON, corrupt `task.md` → 500; `board.png` 200 `image/png`, `..%2F..%2Fconfig.yml` 403, path-as-is `..` normalized by Bun → 404; `curl -N /events` showed ping on connect, 5 s pings, and `change` for the edited `task.md`; seed reverted, tree clean.
   - Criteria:
     1. `GET /api/board` → `{ columns: [backlog, planning, building, review, done], tasks }`; task A has `column: building`, `next.stage: building`; task B has `column: backlog`, `next.stage: spec`.
     2. `GET /api/tasks/<A>` → task, next, spec + architecture (status, revision), verification, 3 slices, 3 notes; `/api/tasks/nope` and `/api/whatever` → 404 `{ error }`; corrupt `task.md` → 500, not 404.
     3. `/tasks/<A>/assets/board.png` → 200 `image/png`; `curl --path-as-is …/assets/../../config.yml` → 403; missing asset → 404; `/tasks/nope/assets/x.png` → 404.
     4. `curl -N /events` prints `event: ping` immediately and every 5 s; editing task A's `task.md` title prints `event: change` with `{"taskId","file"}`; revert with `git checkout -- .buildsmith`; closing curl logs no error.
     5. `bun test` (route tests via `app.request` on a temp store), `bun run check`, root `bun run typecheck` all pass.
+
+- [ ] **Slice 2 — Board client**
+  - Criteria:
+    1. `bun run dev` in `apps/web` starts server + Vite; `http://localhost:5173` shows 5 columns in config order; "Web board" card in building with badge `building`, "MCP server" in backlog with badge `spec`; each card shows a distinct short id (last 6 hex chars); empty columns render heading + empty body.
+    2. Editing task A's title on disk updates the card within ~1 s with no reload (then revert). After a server restart (`touch src/server/app.ts`), the next disk edit still refreshes the board.
+    3. `rg 'from "\.\./server' apps/web/src/client` shows exactly one `import type` line; `vite build` output contains no `hono/streaming`. Renaming `columns` in `app.ts` fails `bun run typecheck` in the client (revert).
+    4. `bun run check`, root `bun run typecheck`, `bun test`, and `bun run build` (writes `dist/`) all pass.
+
+- [ ] **Slice 3 — Task detail sheet**
+  - Criteria:
+    1. Clicking "Web board" opens the right-side sheet; URL becomes `?task=01a09815-35cb-7313-b058-5656c1e1b5d5`; reload reopens it; closing (X / Escape / backdrop) removes the param.
+    2. Overview shows description, 8 criteria, `next` action `work-slice` with its reason; Spec tab shows `approved` + `revision 2` with a rendered GFM table, task list, code block, and the image requested from `/tasks/<A>/assets/board.png` (200, `image/png`); Architecture shows `approved`.
+    3. Slices tab lists 3 slices (done/doing/todo, commit `4b5b604` on #1); Notes shows 3 entries with author · target · verdict; Verification shows "pending" and the checklist.
+    4. "MCP server": Overview shows action `write-spec`, badge `spec`; Spec/Architecture/Verification/Slices/Notes show empty states.
+    5. With A's sheet open, setting slice 2 `status: blocked` on disk shows it under Overview → blocked within ~1 s; revert restores.
+    6. `bun run check`, root `typecheck`, `bun test`, `bun run build` pass (no new tests expected).
