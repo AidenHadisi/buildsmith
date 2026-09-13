@@ -31,14 +31,22 @@ We are adding `apps/web`: a read-only Kanban board over that folder. A Vite SPA 
 
 Frozen on approval. A box is checked only with evidence from a live run.
 
-- [ ] **Board renders from config** — proof: `bun run dev` in `apps/web`, open `http://localhost:5173`; one column per `columns` entry in `.buildsmith/config.yml`, in order, each with its cards (title, short id, stage badge); an empty column renders empty, not missing.
-- [ ] **Card detail sheet** — proof: click a card; side sheet opens with tabs Overview, Spec, Architecture, Slices, Notes, Verification; URL gains `?task=<id>`; reloading that URL reopens the same sheet; closing removes the param.
-- [ ] **Markdown + assets** — proof: a task doc with a GFM table, task list, fenced code and `![](assets/shot.png)` renders as HTML; the image loads from `/tasks/<id>/assets/shot.png` with 200 and `image/png`; `/tasks/<id>/assets/../../config.yml` returns 4xx.
-- [ ] **Pipeline state visible** — proof: Spec/Architecture tabs show `status` and `revision`; Slices tab lists each slice with status and commit; Verification shows `result`; Overview shows `next()` action/reason and `blocked` when a slice is blocked.
-- [ ] **Live refresh** — proof: with the page open, edit a task's `task.md` title on disk; the card updates within ~1 s without reload; `curl -N http://localhost:3000/events` shows the SSE stream with a heartbeat.
-- [ ] **Typed API** — proof: `GET /api/board` and `GET /api/tasks/:id` return JSON; unknown id → 404 JSON; client uses `hc<AppType>`; renaming a response field on the server fails `tsc` on the client.
-- [ ] **Green checks** — proof: `bun run check`, `bun run typecheck`, `bun test` pass at the root; `bun run build` in `apps/web` writes `dist/`; `bun run start` serves the board at `http://localhost:3000` without Vite.
-- [ ] **Dogfood data** — proof: `.buildsmith/` at the repo root is committed with `config.yml`, `project.md`, and at least two tasks: one exercising every tab (spec, architecture, slices, notes, verification, an asset image) and one in `backlog` with only `task.md`.
+- [x] **Board renders from config** — evidence: headings `Backlog/Planning/Building/Review/Done` in order with counts; adding `qa` to `config.yml` + restart showed a `Qa` column, revert removed it.
+  - Original: — proof: `bun run dev` in `apps/web`, open `http://localhost:5173`; one column per `columns` entry in `.buildsmith/config.yml`, in order, each with its cards (title, short id, stage badge); an empty column renders empty, not missing.
+- [x] **Card detail sheet** — evidence: `?task=01a09815-35cb-7313-b058-5656c1e1b5d5`, six tabs, reload reopens, close clears the param.
+  - Original: — proof: click a card; side sheet opens with tabs Overview, Spec, Architecture, Slices, Notes, Verification; URL gains `?task=<id>`; reloading that URL reopens the same sheet; closing removes the param.
+- [x] **Markdown + assets** — evidence: Spec panel has table, 3 checkboxes, `pre code`, image `naturalWidth 64`; `board.png` 200 `image/png`; `..%2F..` → 403, path-as-is → 404.
+  - Original: — proof: a task doc with a GFM table, task list, fenced code and `![](assets/shot.png)` renders as HTML; the image loads from `/tasks/<id>/assets/shot.png` with 200 and `image/png`; `/tasks/<id>/assets/../../config.yml` returns 4xx.
+- [x] **Pipeline state visible** — evidence: `approved`/`revision 2`, architecture `approved`, slices done/doing/todo with `4b5b604`, verification `pending`, `work-slice — slice 2 is doing`; blocking slice 2 on disk showed `Blocked #2` in 2.4 s.
+  - Original: — proof: Spec/Architecture tabs show `status` and `revision`; Slices tab lists each slice with status and commit; Verification shows `result`; Overview shows `next()` action/reason and `blocked` when a slice is blocked.
+- [x] **Live refresh** — evidence: title edit visible in 663 ms, navigation count stayed 1; `curl -N /events` shows `event: ping`.
+  - Original: — proof: with the page open, edit a task's `task.md` title on disk; the card updates within ~1 s without reload; `curl -N http://localhost:3000/events` shows the SSE stream with a heartbeat.
+- [x] **Typed API** — evidence: board keys `[columns, tasks]`, task keys `[architecture, next, notes, slices, spec, task, verification]`, `/api/tasks/nope` 404 `{"error":"task not found"}`; one `import type` server import; renaming `columns` fails `Board.tsx` tsc.
+  - Original: — proof: `GET /api/board` and `GET /api/tasks/:id` return JSON; unknown id → 404 JSON; client uses `hc<AppType>`; renaming a response field on the server fails `tsc` on the client.
+- [x] **Green checks** — evidence: check/typecheck/test (30)/build green; `bun run start` serves `/` 200, `/nope` 404, board + sheet render at :3000.
+  - Original: — proof: `bun run check`, `bun run typecheck`, `bun test` pass at the root; `bun run build` in `apps/web` writes `dist/`; `bun run start` serves the board at `http://localhost:3000` without Vite.
+- [x] **Dogfood data** — evidence: `git ls-files .buildsmith` lists config, project, task A's 10 files incl. `assets/board.png`, task B `task.md` only.
+  - Original: — proof: `.buildsmith/` at the repo root is committed with `config.yml`, `project.md`, and at least two tasks: one exercising every tab (spec, architecture, slices, notes, verification, an asset image) and one in `backlog` with only `task.md`.
 
 Nothing reaches outside the machine. Tests touch only `.buildsmith/` files they can revert.
 
