@@ -1,10 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
     <script>
       const system = matchMedia("(prefers-color-scheme: dark)");
       const apply = () => {
-        const stored = localStorage.getItem("theme");
+        let stored = null;
+        try {
+          stored = localStorage.getItem("theme");
+        } catch {}
         document.documentElement.classList.toggle(
           "dark",
           stored === "dark" || (stored !== "light" && system.matches),
@@ -13,7 +17,6 @@
       apply();
       system.addEventListener("change", apply);
     </script>
-    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/icon.png" />
     <title>Buildsmith</title>
