@@ -53,6 +53,16 @@ bun run build && bun run start # production: http://localhost:3000
 
 The server finds `.buildsmith/` by walking up from the cwd; set `BUILDSMITH_ROOT=<dir>` to override.
 
+## CLI
+
+```sh
+bunx buildsmith --help                 # bun install links node_modules/.bin/buildsmith
+bunx buildsmith task list | jq         # JSON when piped or with --json, text in a TTY
+bunx buildsmith doc write <id> spec --file spec.md   # or pipe the body on stdin
+```
+
+`<id>` is a task UUID or any unique prefix/suffix of one. Outside the monorepo, run `bun packages/cli/src/main.ts`.
+
 ## License
 
 [MIT](LICENSE) © Aiden Hadisi

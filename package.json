@@ -41,6 +41,9 @@
     "test": "bun test",
     "release": "bumpp"
   },
+  "dependencies": {
+    "@buildsmith/cli": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "1.4.2",
     "bumpp": "12.3.0",
