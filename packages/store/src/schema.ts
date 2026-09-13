@@ -30,26 +30,24 @@ export const taskSchema = z.looseObject({
   order: z.string(),
   branch: z.string().optional(),
   pr: z.string().optional(),
+  criteria: z.array(z.string()).default([]),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
 export type TaskFrontmatter = z.infer<typeof taskSchema>;
 
-export const pipelineDocSchema = z.looseObject({
-  status: docStatusSchema,
-  revision: z.number().int().positive(),
-});
-export type PipelineDocFrontmatter = z.infer<typeof pipelineDocSchema>;
-
-export const verificationSchema = z.looseObject({
+export const docSchema = z.looseObject({
+  status: docStatusSchema.optional(),
+  revision: z.number().int().positive().optional(),
   result: verificationResultSchema.optional(),
 });
-export type VerificationFrontmatter = z.infer<typeof verificationSchema>;
+export type DocFrontmatter = z.infer<typeof docSchema>;
 
 export const sliceSchema = z.looseObject({
   title: z.string(),
   status: sliceStatusSchema,
   commit: z.string().optional(),
+  criteria: z.array(z.string()).default([]),
 });
 export type SliceFrontmatter = z.infer<typeof sliceSchema>;
 

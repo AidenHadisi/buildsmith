@@ -10,12 +10,15 @@ export type NextAction = {
 const STEPS = { draft: "critique", critiqued: "review", reviewed: "approve" } as const;
 
 function docStep(kind: "spec" | "architecture", doc: TaskDoc | null): NextAction | null {
-  if (!doc || doc.kind !== kind) {
+  if (!doc?.status) {
     return { stage: kind, action: `write-${kind}`, reason: `${kind} does not exist` };
   }
   if (doc.status === "approved") return null;
-  const verb = STEPS[doc.status];
-  return { stage: kind, action: `${verb}-${kind}`, reason: `${kind} is ${doc.status}` };
+  return {
+    stage: kind,
+    action: `${STEPS[doc.status]}-${kind}`,
+    reason: `${kind} is ${doc.status}`,
+  };
 }
 
 export async function next(store: Store, taskId: string): Promise<NextAction> {
@@ -52,7 +55,7 @@ export async function next(store: Store, taskId: string): Promise<NextAction> {
   }
 
   const verification = await store.docs.read(taskId, "verification");
-  if (!verification || verification.kind !== "verification") {
+  if (!verification) {
     return { stage: "verify", action: "write-verification", reason: "verification does not exist" };
   }
   if (verification.result !== "pass") {

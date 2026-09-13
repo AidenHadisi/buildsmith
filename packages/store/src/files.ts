@@ -1,4 +1,4 @@
-import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, open, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { Document, parseDocument } from "yaml";
 import type { z } from "zod";
@@ -70,13 +70,15 @@ export async function patchRecord<T>(
   path: string,
   schema: z.ZodType<T>,
   mutate: (doc: Document) => void,
+  body?: string,
 ): Promise<{ data: T; body: string }> {
   const rec = await readRecord(path, schema);
   mutate(rec.doc);
   const yamlOut = rec.doc.toString({ lineWidth: 0 });
   const { data } = parseDoc(path, schema, yamlOut);
-  await writeAtomic(path, joinFrontmatter(yamlOut, rec.body, rec.eol, rec.bom));
-  return { data, body: rec.body };
+  const nextBody = body ?? rec.body;
+  await writeAtomic(path, joinFrontmatter(yamlOut, nextBody, rec.eol, rec.bom));
+  return { data, body: nextBody };
 }
 
 export function stringifyRecord(
@@ -235,6 +237,27 @@ export async function readOptional(path: string): Promise<string | null> {
     return await readFile(path, "utf8");
   } catch (err) {
     if (errCode(err) === "ENOENT") return null;
+    throw err;
+  }
+}
+
+export async function readOptionalRecord<T>(
+  path: string,
+  schema: z.ZodType<T>,
+): Promise<ReadRecord<T> | null> {
+  try {
+    return await readRecord(path, schema);
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("missing file")) return null;
+    throw err;
+  }
+}
+
+export async function listDir(dir: string): Promise<string[]> {
+  try {
+    return await readdir(dir);
+  } catch (err) {
+    if (errCode(err) === "ENOENT") return [];
     throw err;
   }
 }
