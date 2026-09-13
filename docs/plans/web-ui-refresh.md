@@ -120,6 +120,9 @@ Contain what is likely to change: token values, and how much of `next` the card 
 - Duplicate error markup in Board and TaskSheet · Adopt · Shared ErrorPanel with optional onRetry; sheet 404 has no Retry.
 - QueryClient retry: 3 on 404 task ids · Adopt · Do not retry when the error status is < 500 so invalid ?task= shows the designed error quickly.
 - Ghost columns as anonymous pulse bars · Adopt · Reuse the real column shell (w-72 shrink-0 rounded-lg bg-muted/40 p-3) so loaded columns do not reflow.
+- pipelineSteps returns current separately · Adopt · Return Record of { state: done|current|pending, label? } per tab so triggers have no extra conditionals.
+- Slices mark as check at m/m · Reject · Always n/m when slices.length > 0; pending dot when empty.
+- Verification fail as warning current-only · Adopt · Map result === "fail" to a destructive mark.
 
 ## Slice log
 
@@ -135,6 +138,10 @@ Contain what is likely to change: token values, and how much of `next` the card 
   - Criteria: (1) MCP server card shows title, last-6 id, stage, and next.action (skipped when action is none). (2) Cards have visible hover and focus-visible. (3) Empty columns still appear with heading, count 0, and "No tasks". (4) StageBadge uses success/warning/info tokens, not green-600.
   - Proven: `bun test`/`typecheck`/`check` pass. MCP `write-spec e2c0a8 spec`; Web board `work-slice e1b5d5 building`. Hover bg change and 3px focus-visible ring. planning/review/done show 0 and "No tasks". Badge classes `bg-info/10` / `bg-warning/10`; verify `bg-transparent`; no green-600.
 
-- [x] **Slice 4 — Loading and error states** · pending
+- [x] **Slice 4 — Loading and error states** · `e8a6523`
   - Criteria: (1) First board load shows header plus five pulsing ghost columns, not a blank page. (2) Board error with no data shows designed ErrorPanel + Retry. (3) Deep link ?task=01a09815-35cb-7313-b058-5656c1e1b5d5 opens a sheet with a SheetTitle. (4) ?task=does-not-exist shows designed error inside the sheet, not raw error.message.
   - Proven: `bun test`/`typecheck`/`check` pass. Paused /api/board: header + 5 shells / 15 pulse bars. Blocked /api/board: ErrorPanel “Failed to fetch” + Retry; after unblock populated board. Deep link title “Web board”. Invalid id: SheetTitle “Task”, “404 Not Found”, no Retry, 1 request 3ms.
+
+- [x] **Slice 5 — Pipeline sheet** · pending
+  - Criteria: (1) Web board Overview leads with Next (action + reason) above description. (2) Spec/Architecture/Slices/Verification tab triggers show a status mark; Notes does not. (3) MCP server empty tabs still show empty copy. (4) All six tabs still reach their documents.
+  - Proven: `bun test`/`typecheck`/`check` pass. Overview DOM: H3 Next → work-slice — slice 2 is doing → description. Spec/Architecture checks; Slices 1/3 + warning dot; Verification pending dot; Notes text only. MCP empty copy on all five empty tabs. All six Web board tabs still show their docs.

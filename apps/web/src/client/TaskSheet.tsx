@@ -1,5 +1,6 @@
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { parseResponse } from "hono/client";
+import { CheckIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet.tsx";
@@ -64,15 +65,28 @@ export function TaskSheet() {
 }
 
 function SheetBody({ data }: { data: TaskDetail }) {
+  const steps = pipelineSteps(data);
   return (
     <Tabs defaultValue="overview" className="px-4 pb-4">
       <TabsList className="w-full flex-wrap group-data-horizontal/tabs:h-auto">
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="spec">Spec</TabsTrigger>
-        <TabsTrigger value="architecture">Architecture</TabsTrigger>
-        <TabsTrigger value="slices">Slices</TabsTrigger>
+        <TabsTrigger value="spec">
+          Spec
+          <StepMark {...steps.spec} />
+        </TabsTrigger>
+        <TabsTrigger value="architecture">
+          Architecture
+          <StepMark {...steps.architecture} />
+        </TabsTrigger>
+        <TabsTrigger value="slices">
+          Slices
+          <StepMark {...steps.slices} />
+        </TabsTrigger>
         <TabsTrigger value="notes">Notes</TabsTrigger>
-        <TabsTrigger value="verification">Verification</TabsTrigger>
+        <TabsTrigger value="verification">
+          Verification
+          <StepMark {...steps.verification} />
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="pt-4">
         <Overview data={data} />
@@ -96,6 +110,61 @@ function SheetBody({ data }: { data: TaskDetail }) {
   );
 }
 
+type StepState = "done" | "current" | "pending" | "fail";
+type Step = { state: StepState; label?: string };
+
+function pipelineSteps(
+  detail: TaskDetail,
+): Record<"spec" | "architecture" | "slices" | "verification", Step> {
+  const stage = detail.next.stage;
+  const slicing = stage === "slicing" || stage === "building";
+
+  const docStep = (kind: "spec" | "architecture"): Step => {
+    const doc = detail[kind];
+    if (doc && doc.kind !== "verification" && doc.status === "approved") return { state: "done" };
+    return { state: stage === kind ? "current" : "pending" };
+  };
+
+  const sliceStep = (): Step => {
+    const { slices } = detail;
+    if (slices.length === 0) return { state: slicing ? "current" : "pending" };
+    const done = slices.filter((slice) => slice.status === "done").length;
+    const label = `${done}/${slices.length}`;
+    if (done === slices.length) return { state: "done", label };
+    return { state: slicing ? "current" : "pending", label };
+  };
+
+  const verificationStep = (): Step => {
+    const doc = detail.verification;
+    if (doc?.kind === "verification" && doc.result === "fail") return { state: "fail" };
+    if (doc?.kind === "verification" && doc.result === "pass") return { state: "done" };
+    return { state: stage === "verify" ? "current" : "pending" };
+  };
+
+  return {
+    spec: docStep("spec"),
+    architecture: docStep("architecture"),
+    slices: sliceStep(),
+    verification: verificationStep(),
+  };
+}
+
+const stepMarks: Record<StepState, ReactNode> = {
+  done: <CheckIcon className="size-3 text-success" />,
+  current: <span className="size-1.5 rounded-full bg-warning" />,
+  pending: <span className="size-1.5 rounded-full bg-muted-foreground/40" />,
+  fail: <span className="size-1.5 rounded-full bg-destructive" />,
+};
+
+function StepMark({ state, label }: Step) {
+  return (
+    <>
+      {label && <span className="text-xs text-muted-foreground">{label}</span>}
+      {stepMarks[state]}
+    </>
+  );
+}
+
 function LinkOrText({ value }: { value: string }) {
   if (!value.startsWith("http")) return <span>{value}</span>;
   return (
@@ -108,12 +177,6 @@ function LinkOrText({ value }: { value: string }) {
 function Overview({ data: { task, next } }: { data: TaskDetail }) {
   return (
     <div className="space-y-4">
-      <Markdown taskId={task.id}>{task.description}</Markdown>
-      {task.criteria.length > 0 && (
-        <Section title="Criteria">
-          <Bullets items={task.criteria} />
-        </Section>
-      )}
       <Section title="Next">
         <p className="text-sm">
           <span className="font-mono">{next.action}</span> — {next.reason}
@@ -124,6 +187,12 @@ function Overview({ data: { task, next } }: { data: TaskDetail }) {
           <Bullets items={next.blocked.map((slice) => `#${slice.n} ${slice.title}`)} />
         </Section>
       ) : null}
+      <Markdown taskId={task.id}>{task.description}</Markdown>
+      {task.criteria.length > 0 && (
+        <Section title="Criteria">
+          <Bullets items={task.criteria} />
+        </Section>
+      )}
     </div>
   );
 }
