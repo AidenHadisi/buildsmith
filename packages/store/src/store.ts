@@ -1,6 +1,7 @@
 import { generateKeyBetween } from "fractional-indexing";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { StoreError } from "./errors.ts";
 import {
   createExclusive,
   findRoot,
@@ -56,8 +57,8 @@ export async function openStore(cwd: string) {
       return id === ref || id.startsWith(ref) || id.endsWith(ref);
     });
     const [match] = matches;
-    if (!match) throw new Error(`task ${ref} not found`);
-    if (matches.length > 1) throw new Error(`ambiguous task id ${ref}`);
+    if (!match) throw new StoreError("not_found", `task ${ref} not found`);
+    if (matches.length > 1) throw new StoreError("ambiguous_id", `ambiguous task id ${ref}`);
     return join(root, "tasks", match);
   };
 

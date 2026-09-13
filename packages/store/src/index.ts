@@ -1,3 +1,4 @@
+export { StoreError, type StoreErrorCode } from "./errors.ts";
 export { openStore, type SliceRecord, type Store, type TaskDoc, type TaskRecord } from "./store.ts";
 export { findRoot, initRoot } from "./files.ts";
 export { next, type NextAction } from "./next.ts";
