@@ -31,12 +31,12 @@ Done looks like a local operator UI a developer can scan: identity, live connect
 
 ## Acceptance criteria
 
-- [ ] **Chrome** — At http://localhost:5173 the board shows a top bar with the anvil icon, the product name, and a live/stale connection chip (SSE up vs reconnecting). It is not a headerless column row.
-- [ ] **Cards** — Each card still shows title, last-6 id, and pipeline stage. It also shows the next action and, when the payload has them, blocked and slice progress. Hover and keyboard focus are visible. Seed: “Web board” in Building, “MCP server” in Backlog.
-- [ ] **Sheet as pipeline** — Opening Web board (`?task=01a09815-35cb-7313-b058-5656c1e1b5d5`) leads with next action/reason and a visible spec → architecture → slices → verify path. The six existing tabs still reach every current document. MCP server’s empty tabs still have empty copy, not a blank panel.
-- [ ] **States** — First load is skeletons, not a white page. API failure is a designed error, not raw `<p>{message}</p>`. Empty columns still render and say they’re empty.
-- [ ] **Theme** — Light and dark both look intentional. Switching OS appearance (or `.dark` on `html`) restyles board, cards, sheet, and markdown. Status color comes from tokens, not a one-off `green-600`. Favicon is the frozen anvil icon.
-- [ ] **Read-only contract** — No create/edit/move controls. Deep link, Back to reopen the sheet, and live disk updates via SSE still work. `bun test`, `bun run typecheck`, and `bun run check` stay green.
+- [x] **Chrome** — At http://localhost:5173 the board shows a top bar with the anvil icon, the product name, and a live/stale connection chip (SSE up vs reconnecting). It is not a headerless column row. — proof: Playwright 1400×900; `/icon.png` 256×256; h1 Buildsmith; chip Live (`bg-success/10 text-success`); GET /events `event: ping`
+- [x] **Cards** — Each card still shows title, last-6 id, and pipeline stage. It also shows the next action and, when the payload has them, blocked and slice progress. Hover and keyboard focus are visible. Seed: “Web board” in Building, “MCP server” in Backlog. — proof: MCP `write-spec e2c0a8 spec`; Web board `work-slice e1b5d5 building`; hover bg change; 3px focus-visible ring
+- [x] **Sheet as pipeline** — Opening Web board (`?task=01a09815-35cb-7313-b058-5656c1e1b5d5`) leads with next action/reason and a visible spec → architecture → slices → verify path. The six existing tabs still reach every current document. MCP server’s empty tabs still have empty copy, not a blank panel. — proof: Overview Next `work-slice — slice 2 is doing` first; Spec/Architecture checks, Slices 1/3, Verification pending; six tabs show docs; MCP “No … yet”
+- [x] **States** — First load is skeletons, not a white page. API failure is a designed error, not raw `<p>{message}</p>`. Empty columns still render and say they’re empty. — proof: delayed /api/board → 5 ghost columns / 15 pulse bars; planning/review/done “No tasks”; `?task=does-not-exist` → designed 404, no Retry
+- [x] **Theme** — Light and dark both look intentional. Switching OS appearance (or `.dark` on `html`) restyles board, cards, sheet, and markdown. Status color comes from tokens, not a one-off `green-600`. Favicon is the frozen anvil icon. — proof: emulate dark → `html.dark` `color-scheme: dark`; light → class empty `color-scheme: light`; no green-600; `/icon.png` image/png
+- [x] **Read-only contract** — No create/edit/move controls. Deep link, Back to reopen the sheet, and live disk updates via SSE still work. `bun test`, `bun run typecheck`, and `bun run check` stay green. — proof: no inputs/draggable; deep link opens Web board; bun test 31 pass; typecheck and check pass
 
 ## Architecture
 
