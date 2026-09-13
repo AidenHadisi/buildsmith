@@ -66,7 +66,7 @@ Owns: turning the store into HTTP. One Hono app, routes chained so `AppType` is 
 Owns: rendering board state; nothing else. `import type { AppType }` from the server is the only cross-boundary import.
 
 - `main.tsx` — React root, `QueryClientProvider`, Tailwind css import.
-- `api.ts` — just `hc<AppType>("/")` plus one `json(res)` helper that throws on `!res.ok` (`hc` never throws on 404, so a 404 body would otherwise become typed data); components call `useQuery` inline (`InferResponseType` for types), no wrapper hooks. `useLiveRefresh()` — one `EventSource("/events")`; `invalidateQueries()` on `change` **and** on `open` (a `bun --watch` restart drops events; reconnect must refetch).
+- `api.ts` — just `hc<AppType>("/")` plus `BoardTask`/`TaskDetail` types; components call `useQuery` inline with `parseResponse` from `hono/client` (throws on non-2xx and types the 200 body) (`InferResponseType` for types), no wrapper hooks. `useLiveRefresh()` — one `EventSource("/events")`; `invalidateQueries()` on `change` **and** on `open` (a `bun --watch` restart drops events; reconnect must refetch).
 - `useTaskParam()` — reads/writes `?task=` with `URLSearchParams` + `history.pushState`, listens to `popstate`.
 - Components: `Board` (columns from `board.columns`, groups tasks by `column`), `TaskCard` (title, short id, `StageBadge` from `next.stage`), `TaskSheet` (shadcn `Sheet` + `Tabs`; loads `useTask`), `DocView` (status/revision header + `Markdown`), `SliceList`, `NoteList`, `Markdown` (react-markdown + remark-gfm, `urlTransform` rewrites `assets/…` → `/tasks/<id>/assets/…`).
 - `components/ui/` — shadcn-generated (Base UI): sheet, tabs, badge, scroll-area, tooltip. Not hand-edited.
@@ -166,6 +166,8 @@ _Append-only. One line per critic objection._
 - Slice 3: `@tailwindcss/typography` (`prose`) instead of hand-styled markdown · Adopt · one dev dep beats 20+ lines of tuning.
 - Slice 3: `toLocaleString()` not `Intl.RelativeTimeFormat`; assert `image/png`; exact `write-spec` text; live blocked-slice check; `DocView` gets an optional header; `TaskCard` button `w-full text-left`; pushState on close is fine (Back reopens) · Adopt.
 - Slice 3: `ScrollArea` unused → delete `scroll-area.tsx`; `overflow-y-auto` on sheet content · Adopt.
+- Slice 4: "no dist → 404" test is nondeterministic once `dist/` exists · Adopt · `createApp(store, distDir)`; entry passes `join(import.meta.dirname, "../../dist")`; test uses a temp dist and asserts `/` html, `/assets/a.js` js, `/nope` 404, `/api/nope` JSON 404.
+- Slice 4: `.use("*", serveStatic)` not `.get("/*")` so `AppType` gains no route; `import.meta.dirname`; root `build` + `start` scripts; static evidence is `/` and `/assets/*.js`, not the asset route · Adopt.
 
 ## Slice log
 
@@ -180,14 +182,16 @@ _Append-only._
     4. `curl -N /events` prints `event: ping` immediately and every 5 s; editing task A's `task.md` title prints `event: change` with `{"taskId","file"}`; revert with `git checkout -- .buildsmith`; closing curl logs no error.
     5. `bun test` (route tests via `app.request` on a temp store), `bun run check`, root `bun run typecheck` all pass.
 
-- [ ] **Slice 2 — Board client**
+- [x] **Slice 2 — Board client** · `7ebc223`
+  - Proven: screenshot at :5173 shows Backlog/Planning/Building/Review/Done in order, "Web board" (e1b5d5, `building`) and "MCP server" (e2c0a8, `spec`), empty columns with count 0; disk title edit visible in 679 ms without reload; after a `bun --watch` restart the next edit showed in 3.2 s (watchdog reconnect); revert restored; one `import type` server import, dist has no `hono/streaming`; renaming `columns` fails client tsc; check/typecheck/test/build green.
   - Criteria:
     1. `bun run dev` in `apps/web` starts server + Vite; `http://localhost:5173` shows 5 columns in config order; "Web board" card in building with badge `building`, "MCP server" in backlog with badge `spec`; each card shows a distinct short id (last 6 hex chars); empty columns render heading + empty body.
     2. Editing task A's title on disk updates the card within ~1 s with no reload (then revert). After a server restart (`touch src/server/app.ts`), the next disk edit still refreshes the board.
     3. `rg 'from "\.\./server' apps/web/src/client` shows exactly one `import type` line; `vite build` output contains no `hono/streaming`. Renaming `columns` in `app.ts` fails `bun run typecheck` in the client (revert).
     4. `bun run check`, root `bun run typecheck`, `bun test`, and `bun run build` (writes `dist/`) all pass.
 
-- [ ] **Slice 3 — Task detail sheet**
+- [x] **Slice 3 — Task detail sheet** · `SLICE3_SHA`
+  - Proven: sheet opens with `?task=<A>`, survives reload, closes via Escape/X/backdrop clearing the param; Overview shows description, 8 criteria, `work-slice — slice 2 is doing`; Spec shows `approved`/`revision 2`, GFM table, 3 checkboxes, code block, image `naturalWidth 64` fetched 200 `image/png`; Slices done/doing/todo with `4b5b604`; 3 notes (`critic · spec · revise` …); Verification `pending`; MCP server shows `write-spec — spec does not exist` and all empty states; blocking slice 2 on disk showed `Blocked #2 Board client` in 0.65 s, revert cleared it in 1.9 s; sheet widened to 672 px with all six tabs visible.
   - Criteria:
     1. Clicking "Web board" opens the right-side sheet; URL becomes `?task=01a09815-35cb-7313-b058-5656c1e1b5d5`; reload reopens it; closing (X / Escape / backdrop) removes the param.
     2. Overview shows description, 8 criteria, `next` action `work-slice` with its reason; Spec tab shows `approved` + `revision 2` with a rendered GFM table, task list, code block, and the image requested from `/tasks/<A>/assets/board.png` (200, `image/png`); Architecture shows `approved`.
@@ -195,3 +199,9 @@ _Append-only._
     4. "MCP server": Overview shows action `write-spec`, badge `spec`; Spec/Architecture/Verification/Slices/Notes show empty states.
     5. With A's sheet open, setting slice 2 `status: blocked` on disk shows it under Overview → blocked within ~1 s; revert restores.
     6. `bun run check`, root `typecheck`, `bun test`, `bun run build` pass (no new tests expected).
+
+- [ ] **Slice 4 — Production serve + repo wiring**
+  - Criteria:
+    1. `bun run build && bun run start` at the repo root → `curl -si :3000/` 200 `text/html`; `/assets/<hash>.js` 200 `text/javascript`; browser at :3000 renders the board, opens a sheet, Spec image loads; `/nope` → 404; `/api/nope` → JSON 404; `--path-as-is /tasks/<A>/assets/../../config.yml` → 4xx.
+    2. From the repo root, `bun apps/web/src/server/index.ts` also serves `/` (dist path independent of cwd).
+    3. New static route tests pass against a temp dist; `bun run check`, `typecheck`, `test`, `build` pass; CI has a build step; README and `.buildsmith/project.md` document dev/prod commands and `BUILDSMITH_ROOT`.

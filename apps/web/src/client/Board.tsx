@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, json } from "./api.ts";
+import { parseResponse } from "hono/client";
+import { api } from "./api.ts";
 import { TaskCard } from "./TaskCard.tsx";
+import { TaskSheet } from "./TaskSheet.tsx";
 import { useLiveRefresh } from "./useLiveRefresh.ts";
 
 export function Board() {
   useLiveRefresh();
   const { data, error } = useQuery({
     queryKey: ["board"],
-    queryFn: () => api.api.board.$get().then(json),
+    queryFn: () => parseResponse(api.api.board.$get()),
   });
 
   if (error) return <p>{error.message}</p>;
@@ -33,6 +35,7 @@ export function Board() {
           );
         })}
       </div>
+      <TaskSheet />
     </div>
   );
 }
