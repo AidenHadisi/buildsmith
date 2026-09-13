@@ -20,13 +20,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "bun --watch src/server/index.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "bun src/server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@buildsmith/store": "workspace:*",
-    "@hono/zod-validator": "0.9.1",
-    "@modelcontextprotocol/hono": "2.0.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "hono": "4.13.7",

@@ -1,0 +1,173 @@
+# Web board
+
+## What we're building
+
+`@buildsmith/store` (packages/store) reads and writes a repo's `.buildsmith/` folder: `config.yml`, `project.md`, and one folder per task holding `task.md`, `spec.md`, `architecture.md`, `verification.md`, `slices/NN-slug.md`, `notes.md`, `assets/`. Nothing renders it yet; the only way to see the board is to open the files.
+
+We are adding `apps/web`: a read-only Kanban board over that folder. A Vite SPA (React 19, Tailwind 4, shadcn on Base UI, TanStack Query) talks to a small Hono server on Bun that wraps the store. Columns come from `config.yml`; each card opens a side sheet with Overview / Spec / Architecture / Slices / Notes / Verification, markdown rendered, images served from the task's `assets/`. The server pushes `store.watch()` events over SSE so the page refreshes as the agent edits files. The dev server dogfoods this repo's own committed `.buildsmith/`. Done means the eight acceptance criteria below are proven live and `bun run build` + `bun run start` serve the same board without Vite.
+
+## Requirements
+
+- One column per `config.yml` column, in order; cards show title, short id, and the derived stage (from `next()`).
+- Clicking a card opens a side sheet; `?task=<id>` in the URL reopens it on reload.
+- Sheet tabs: Overview (description, criteria, branch/PR, next action), Spec, Architecture, Slices, Notes, Verification.
+- Markdown rendered with GFM; relative `assets/...` image links resolve to the server's asset route.
+- Pipeline frontmatter (status, revision, slice status/commit, verification result) is visible.
+- File changes on disk appear in the UI within ~1 s via SSE, no reload.
+- Client and server share route types through Hono RPC; no hand-written fetch URLs.
+- Production: `vite build` output served by the Hono server from `dist/`.
+- `.buildsmith/` committed at the repo root with realistic seed tasks.
+
+## Out of scope
+
+- Editing, drag-and-drop, creating tasks — v1 is read-only; the agent manages the board via MCP later.
+- MCP server and CLI packages.
+- Auth — local tool on localhost.
+- Routing library — a single `?task=` search param is enough.
+- Syntax highlighting in code blocks — plain `<pre>` for now.
+- `bun build --compile` single binary — later, once the CLI exists.
+
+## Acceptance criteria
+
+Frozen on approval. A box is checked only with evidence from a live run.
+
+- [ ] **Board renders from config** — proof: `bun run dev` in `apps/web`, open `http://localhost:5173`; one column per `columns` entry in `.buildsmith/config.yml`, in order, each with its cards (title, short id, stage badge); an empty column renders empty, not missing.
+- [ ] **Card detail sheet** — proof: click a card; side sheet opens with tabs Overview, Spec, Architecture, Slices, Notes, Verification; URL gains `?task=<id>`; reloading that URL reopens the same sheet; closing removes the param.
+- [ ] **Markdown + assets** — proof: a task doc with a GFM table, task list, fenced code and `![](assets/shot.png)` renders as HTML; the image loads from `/tasks/<id>/assets/shot.png` with 200 and `image/png`; `/tasks/<id>/assets/../../config.yml` returns 4xx.
+- [ ] **Pipeline state visible** — proof: Spec/Architecture tabs show `status` and `revision`; Slices tab lists each slice with status and commit; Verification shows `result`; Overview shows `next()` action/reason and `blocked` when a slice is blocked.
+- [ ] **Live refresh** — proof: with the page open, edit a task's `task.md` title on disk; the card updates within ~1 s without reload; `curl -N http://localhost:3000/events` shows the SSE stream with a heartbeat.
+- [ ] **Typed API** — proof: `GET /api/board` and `GET /api/tasks/:id` return JSON; unknown id → 404 JSON; client uses `hc<AppType>`; renaming a response field on the server fails `tsc` on the client.
+- [ ] **Green checks** — proof: `bun run check`, `bun run typecheck`, `bun test` pass at the root; `bun run build` in `apps/web` writes `dist/`; `bun run start` serves the board at `http://localhost:3000` without Vite.
+- [ ] **Dogfood data** — proof: `.buildsmith/` at the repo root is committed with `config.yml`, `project.md`, and at least two tasks: one exercising every tab (spec, architecture, slices, notes, verification, an asset image) and one in `backlog` with only `task.md`.
+
+Nothing reaches outside the machine. Tests touch only `.buildsmith/` files they can revert.
+
+## Architecture
+
+Three components, one-way dependencies: **client → server → store**. The client never imports store runtime code; it sees the server only through Hono RPC types.
+
+### 1. Server — `apps/web/src/server/`
+
+Owns: turning the store into HTTP. One Hono app, routes chained so `AppType` is inferable.
+
+- `index.ts` — entry. `openStore(process.env.BUILDSMITH_ROOT ?? process.cwd())`, `Bun.serve({ fetch: app.fetch, port: 3000 })` (no `idleTimeout`; the SSE ping keeps streams alive).
+- `app.ts` — `createApp(store)` returns the Hono app; `export type AppType`.
+  - `GET /api/board` → `{ columns: string[], tasks: BoardTask[] }` where `BoardTask = TaskRecord & { next: NextAction }`. Built from `store.tasks.list()` + `next(store, id)` per task (`Promise.all`).
+  - `GET /api/tasks/:id` → `{ task, next, spec, architecture, verification, slices, notes }` (docs nullable), all reads in one `Promise.all`. `store.tasks.get` throws on a missing task: map only the store's "not found" message to 404 `{ error }`, rethrow anything else (corrupt frontmatter must not look like 404). No validator: `:id` is already a string.
+  - `GET /events` → `streamSSE`; subscribes `watch(store.root, …)`, sends `event: change` with the `WatchEvent` JSON, `event: ping` every 5 s (keeps Bun's default 10 s `idleTimeout` alive without server options). Ping loop is `while (!stream.aborted && !stream.closed)`; `onAbort` unsubscribes `watch`, so a closed tab releases its `fs.watch`.
+  - `GET /tasks/:id/assets/*` → `resolve(task.dir, "assets", rest)`; `relative(assetsDir, p)` starting with `..` → 403; `Bun.file(p).exists()` false → 404; else `new Response(file)` (Bun sets Content-Type). No `realpath`: localhost read-only tool, symlink escape is not a threat.
+  - `app.get("/api/*", …404 json)` after the API routes so the JSON-404 contract holds for the whole prefix.
+  - Last: `serveStatic({ root })` with `root = join(import.meta.dir, "../../dist")` (not cwd-relative). No SPA fallback: the app has one page (`/` + `?task=`), so `/` → `index.html`, `/assets/*.js` → correct MIME, and every other unknown path stays 404 (keeps the traversal 4xx check honest). `/api`, `/events`, `/tasks/:id/assets/*` are registered earlier and never reach static.
+- Hides: store shape, file layout, path safety. Changes here are contained by RPC types.
+- Known limit (v1): `store.config` is read once at startup; editing `config.yml` needs a server restart.
+
+### 2. Client — `apps/web/src/client/`
+
+Owns: rendering board state; nothing else. `import type { AppType }` from the server is the only cross-boundary import.
+
+- `main.tsx` — React root, `QueryClientProvider`, Tailwind css import.
+- `api.ts` — just `hc<AppType>("/")` plus one `json(res)` helper that throws on `!res.ok` (`hc` never throws on 404, so a 404 body would otherwise become typed data); components call `useQuery` inline (`InferResponseType` for types), no wrapper hooks. `useLiveRefresh()` — one `EventSource("/events")`; `invalidateQueries()` on `change` **and** on `open` (a `bun --watch` restart drops events; reconnect must refetch).
+- `useTaskParam()` — reads/writes `?task=` with `URLSearchParams` + `history.pushState`, listens to `popstate`.
+- Components: `Board` (columns from `board.columns`, groups tasks by `column`), `TaskCard` (title, short id, `StageBadge` from `next.stage`), `TaskSheet` (shadcn `Sheet` + `Tabs`; loads `useTask`), `DocView` (status/revision header + `Markdown`), `SliceList`, `NoteList`, `Markdown` (react-markdown + remark-gfm, `urlTransform` rewrites `assets/…` → `/tasks/<id>/assets/…`).
+- `components/ui/` — shadcn-generated (Base UI): sheet, tabs, badge, scroll-area, tooltip. Not hand-edited.
+- Hides: how state arrives (query + SSE) and how docs render.
+
+### 3. Dogfood data — `.buildsmith/` at repo root
+
+Owns: the seed the dev server shows. `config.yml` (default columns), `project.md` (real run/check/live-test instructions for this repo), two tasks: `<id>-web-board` in `building` with spec/architecture (approved), 3 slices (done/doing/todo), notes, verification (draft), `assets/board.png`; `<id>-mcp-server` in `backlog` with only `task.md`. Written with the store itself (a throwaway script, not committed) so frontmatter matches the schemas exactly.
+
+### Wiring
+
+- `apps/web/index.html` (Vite root) loads `/src/client/main.tsx`; `dist/` already gitignored.
+- `vite.config.ts`: `@vitejs/plugin-react`, `@tailwindcss/vite`, `resolve.alias` `@` → `src/client` (tsconfig `paths` mirrors it for shadcn imports), `server.proxy` for `/api`, `/events`, `/tasks` → `http://localhost:3000` (no timeout tweaks; the heartbeat resets Vite's inactivity timers).
+- Deps to add: `@tanstack/react-query`, `react-markdown`, `remark-gfm`, `@base-ui/react` (shadcn Base UI target). Remove `@hono/zod-validator` and `@modelcontextprotocol/hono` (unused here; MCP re-adds it).
+- `apps/web/package.json` scripts: `dev` = `bun run --parallel dev:server dev:client`; `dev:server` = `bun --watch src/server/index.ts`; `dev:client` = `vite`; `build` = `vite build`; `start` = `bun src/server/index.ts`; `typecheck` = `tsc --noEmit`.
+- `apps/web/tsconfig.json` adds `paths` for the `@/` alias shadcn expects (root already sets `jsx: react-jsx`). Root `typecheck` **must** become `bun run --filter '*' typecheck`: root `tsc` has no `include` and would type-check `apps/web/src` without DOM libs.
+
+### Key decisions
+
+- Separate Hono process, not a Vite plugin: same code path in dev and prod; Vite is a static-asset concern only.
+- SSE is a cache-invalidation signal, not a data channel — keeps the client on one fetch path.
+- Board payload carries `next` per task so the server is the only place that knows pipeline rules.
+- No router, no global state library: `?task=` + TanStack Query is the whole state.
+- Asset route is hand-written (not `serveStatic`) because the root is per task and 403/404 must stay distinct.
+- Board payload includes `TaskRecord.dir` (absolute path) and `next.blocked[].file`; harmless on localhost, not stripped.
+
+## Conventions
+
+- ESM, `.ts`/`.tsx` import extensions, `import type` for types (`verbatimModuleSyntax`, `erasableSyntaxOnly`: no enums, no parameter properties) — exemplar: `packages/store/src/store.ts`
+- Root `tsconfig.json` is strict with `noUncheckedIndexedAccess`; `apps/web/tsconfig.json` extends it adding `DOM` libs. Root `typecheck` must cover the web app too: change root script to `bun run --filter '*' typecheck` and give every workspace a `typecheck` script (store already has one).
+- oxlint + oxfmt on defaults: double quotes, semicolons, width 100, 2 spaces, trailing commas. Run `bun run fmt` before committing.
+- Errors are plain `Error` with a message; no custom classes — exemplar: `packages/store/src/files.ts`
+- Tests: `bun:test`, colocated `*.test.ts`, temp dirs via `mkdtemp` + `afterEach` cleanup, `initRoot` + `openStore` to build a fixture store — exemplar: `packages/store/src/store.test.ts`. Server route tests call `app.request(...)` against a temp store; no client unit tests in v1.
+- Store API facts: `openStore(cwd)` walks up via `findRoot` and throws `no .buildsmith directory` if absent; `tasks.get(id)` throws on a missing task (catch → 404); `docs.read` returns `null` when absent; `next(store, id)` is async; `watch(root, cb)` returns an unsubscribe fn; `TaskRecord.dir` is the task's absolute folder.
+- Store barrel does not export schemas or `DEFAULT_COLUMNS`; the server reads columns from `store.config.columns`.
+- Prefer less code: no barrel files in the client, no wrapper hooks without a second caller, shadcn `components/ui/*` left as generated.
+
+## Verification
+
+- `bun run check` (oxlint + oxfmt, root)
+- `bun run typecheck` (root, runs every workspace's `tsc --noEmit`)
+- `bun test` (root)
+- `bun run build` in `apps/web`
+
+## Live test
+
+- Prereq: `export PATH="$HOME/.bun/bin:$PATH"`; `bun install` at the root.
+- Dev: `cd apps/web && bun run dev` starts Hono on `http://localhost:3000` (`bun --watch src/server/index.ts`) and Vite on `http://localhost:5173` (proxying `/api`, `/events`, `/tasks`). Open `http://localhost:5173`.
+- Prod: `cd apps/web && bun run build && bun run start`; open `http://localhost:3000`.
+- Data: the repo's own `.buildsmith/` at `/Users/aidenhadisi/aidengit/buildsmith/.buildsmith` (server resolves the root from cwd via `findRoot`; `BUILDSMITH_ROOT` overrides).
+- Nothing external is contacted. Live-refresh checks edit a seed task's `task.md` and must revert it (`git checkout -- .buildsmith`).
+
+## Design rulings
+
+_Append-only. One line per critic objection._
+
+- Drop `@hono/zod-validator` on `/api/tasks/:id` (pass-through, pulls in zod) · Adopt · id is a string; store throws → 404.
+- Inline `useQuery` instead of `useBoard`/`useTask` single-caller hooks · Adopt · matches "no wrapper hooks without a second caller".
+- Invalidate queries on EventSource `open` · Adopt · `bun --watch` restarts drop events; reconnect must refetch.
+- `idleTimeout: 255` + 15 s ping unexplained · Adopt · ping every 5 s, no server option.
+- Vite proxy `timeout: 0` for `/events` · Adopt (cut) · heartbeat resets inactivity timers.
+- `realpath` in asset route · Adopt (cut) · `resolve` + `relative` check; 403 vs 404 stay distinct; symlinks not a threat locally.
+- Missing `index.html` Vite entry · Adopt · added to wiring.
+- `@` alias needs `resolve.alias` in Vite too · Adopt · added to wiring.
+- Missing deps (react-query, react-markdown, remark-gfm, Base UI); decide on `@modelcontextprotocol/hono` · Adopt · add the four, remove MCP dep until the MCP slice exists.
+- Reload config on `config.yml` change · Reject · restart is fine for v1; documented as known limit.
+- Catch-all → 404 hides corrupt frontmatter · Adopt · match store's not-found message only.
+- `dir` / `blocked[].file` leak absolute paths to client · Noted · localhost tool, not stripped.
+- Plan still said `idleTimeout: 255` · Adopt · removed; ping alone keeps the stream alive.
+- Ping loop must exit on abort or `watch` leaks · Adopt · loop on `!aborted && !closed`, unsubscribe in `onAbort`.
+- Traversal proof: curl squashes `..` · Adopt · proof uses `--path-as-is`; route test uses raw path via `app.request`.
+- Unknown `/api/*` falls into SPA `index.html` · Adopt · JSON 404 for `/api/*` before static.
+- `./dist` cwd-relative · Adopt · `join(import.meta.dir, "../../dist")`.
+- `hc` does not throw on non-2xx · Adopt · one `json()` helper throws on `!ok`.
+- Send empty SSE `change` payload · Reject · `WatchEvent` JSON costs nothing and makes `curl -N` readable.
+- `jsx: react-jsx` already in root tsconfig; `--filter` typecheck is required not optional · Adopt · plan corrected.
+
+- Slice 1: no `typecheck` scripts for cli/mcp (TS18003, `--filter` skips them) · Adopt.
+- Slice 1: client deps belong to the client slice · Adopt · only removals here.
+- Slice 1: static/SPA serving has no criterion yet · Adopt · deferred to the build slice.
+- Slice 1: seed must `tasks.move(A, "building")`; assert `column` in criterion 1 · Adopt.
+- Slice 1: add `bun run check`, corrupt-frontmatter → 500 test, missing-task asset → 404, explicit edit+revert for SSE, ping on connect · Adopt.
+
+- Slice 2: Base UI package is `@base-ui/react` (renamed v1.0) · Adopt · plan deps corrected.
+- Slice 2: first-8-chars short id collides for UUIDv7 · Adopt · show last 6 hex chars of the id.
+- Slice 2: shadcn init needs `index.css`, alias, `paths` first; use `init -b base` · Adopt · ordered in coder brief.
+- Slice 2: `tooltip` has no caller yet · Adopt · generate in the slice that uses it.
+- Slice 2: specify loading/error render · Adopt · `Board` renders `null` while loading, `error.message` on error.
+- Slice 2: seed `task.md` left dirty by testing · Adopt · verify clean tree before live run.
+- Slice 2: make "type-only import" observable · Adopt · `rg` check + build output contains no `hono/streaming`.
+- Slice 2: no `@types/node`; use `import.meta.dirname` · Adopt.
+- Slice 1 live test: Bun normalizes `/assets/../../config.yml` to `/tasks/config.yml` before routing (404); encoded `..%2F..` hits the guard (403). With an SPA fallback the normalized path would return `index.html` 200 and break the frozen 4xx check · Adopt · drop the SPA fallback entirely — the app has only `/` (+ query), so `serveStatic({ root })` alone serves `/` and `/assets/*`; everything else stays 404.
+
+## Slice log
+
+_Append-only._
+
+- [ ] **Slice 1 — Server + dogfood data**
+  - Criteria:
+    1. `GET /api/board` → `{ columns: [backlog, planning, building, review, done], tasks }`; task A has `column: building`, `next.stage: building`; task B has `column: backlog`, `next.stage: spec`.
+    2. `GET /api/tasks/<A>` → task, next, spec + architecture (status, revision), verification, 3 slices, 3 notes; `/api/tasks/nope` and `/api/whatever` → 404 `{ error }`; corrupt `task.md` → 500, not 404.
+    3. `/tasks/<A>/assets/board.png` → 200 `image/png`; `curl --path-as-is …/assets/../../config.yml` → 403; missing asset → 404; `/tasks/nope/assets/x.png` → 404.
+    4. `curl -N /events` prints `event: ping` immediately and every 5 s; editing task A's `task.md` title prints `event: change` with `{"taskId","file"}`; revert with `git checkout -- .buildsmith`; closing curl logs no error.
+    5. `bun test` (route tests via `app.request` on a temp store), `bun run check`, root `bun run typecheck` all pass.

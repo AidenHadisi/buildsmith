@@ -35,7 +35,7 @@
     "lint": "oxlint .",
     "fmt": "oxfmt --write",
     "fmt:check": "oxfmt --check",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test",
     "release": "bumpp"
   },
