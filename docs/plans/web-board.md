@@ -167,6 +167,7 @@ _Append-only. One line per critic objection._
 - Slice 3: `toLocaleString()` not `Intl.RelativeTimeFormat`; assert `image/png`; exact `write-spec` text; live blocked-slice check; `DocView` gets an optional header; `TaskCard` button `w-full text-left`; pushState on close is fine (Back reopens) · Adopt.
 - Slice 3: `ScrollArea` unused → delete `scroll-area.tsx`; `overflow-y-auto` on sheet content · Adopt.
 - Slice 4: "no dist → 404" test is nondeterministic once `dist/` exists · Adopt · `createApp(store, distDir)`; entry passes `join(import.meta.dirname, "../../dist")`; test uses a temp dist and asserts `/` html, `/assets/a.js` js, `/nope` 404, `/api/nope` JSON 404.
+- Polish: `DocView` derives its header from `doc.kind` instead of an optional `header` prop; orphan `lib/utils.ts` deleted (shadcn CLI only needs the alias to resolve) · Adopt.
 - Slice 4: `.use("*", serveStatic)` not `.get("/*")` so `AppType` gains no route; `import.meta.dirname`; root `build` + `start` scripts; static evidence is `/` and `/assets/*.js`, not the asset route · Adopt.
 
 ## Slice log
@@ -200,7 +201,7 @@ _Append-only._
     5. With A's sheet open, setting slice 2 `status: blocked` on disk shows it under Overview → blocked within ~1 s; revert restores.
     6. `bun run check`, root `typecheck`, `bun test`, `bun run build` pass (no new tests expected).
 
-- [x] **Slice 4 — Production serve + repo wiring** · `SLICE4_SHA`
+- [x] **Slice 4 — Production serve + repo wiring** · `33da69a`
   - Proven: `bun run start` from root → `/` 200 `text/html`, `/assets/index-*.js` 200 `text/javascript`, `/nope` 404, `/api/nope` JSON 404, path-as-is traversal 404; board and sheet render at :3000 with Spec image `naturalWidth 64`; `bun apps/web/src/server/index.ts` from root also serves `/`; 31 tests (4 new static tests on a temp dist), check/typecheck/build green; CI has the build step.
   - Criteria:
     1. `bun run build && bun run start` at the repo root → `curl -si :3000/` 200 `text/html`; `/assets/<hash>.js` 200 `text/javascript`; browser at :3000 renders the board, opens a sheet, Spec image loads; `/nope` → 404; `/api/nope` → JSON 404; `--path-as-is /tasks/<A>/assets/../../config.yml` → 4xx.

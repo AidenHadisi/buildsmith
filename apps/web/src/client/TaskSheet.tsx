@@ -39,7 +39,6 @@ export function TaskSheet() {
 }
 
 function SheetBody({ data }: { data: TaskDetail }) {
-  const verification = data.verification?.kind === "verification" ? data.verification : null;
   return (
     <>
       <SheetHeader>
@@ -78,12 +77,7 @@ function SheetBody({ data }: { data: TaskDetail }) {
           <NoteList notes={data.notes} taskId={data.task.id} />
         </TabsContent>
         <TabsContent value="verification" className="pt-4">
-          <DocView
-            doc={verification}
-            taskId={data.task.id}
-            empty="No verification yet"
-            header={<Badge variant="outline">{verification?.result ?? "pending"}</Badge>}
-          />
+          <DocView doc={data.verification} taskId={data.task.id} empty="No verification yet" />
         </TabsContent>
       </Tabs>
     </>
@@ -99,71 +93,50 @@ function LinkOrText({ value }: { value: string }) {
   );
 }
 
-function Overview({ data }: { data: TaskDetail }) {
-  const { task, next } = data;
+function Overview({ data: { task, next } }: { data: TaskDetail }) {
   return (
     <div className="space-y-4">
       <Markdown taskId={task.id}>{task.description}</Markdown>
       {task.criteria.length > 0 && (
-        <section>
-          <h3 className="mb-1 text-sm font-medium">Criteria</h3>
-          <ul className="list-disc space-y-0.5 pl-5 text-sm">
-            {task.criteria.map((criterion) => (
-              <li key={criterion}>{criterion}</li>
-            ))}
-          </ul>
-        </section>
+        <Section title="Criteria">
+          <Bullets items={task.criteria} />
+        </Section>
       )}
-      <section>
-        <h3 className="mb-1 text-sm font-medium">Next</h3>
+      <Section title="Next">
         <p className="text-sm">
           <span className="font-mono">{next.action}</span> — {next.reason}
         </p>
-      </section>
+      </Section>
       {next.blocked?.length ? (
-        <section>
-          <h3 className="mb-1 text-sm font-medium">Blocked</h3>
-          <ul className="list-disc space-y-0.5 pl-5 text-sm">
-            {next.blocked.map((slice) => (
-              <li key={slice.n}>
-                #{slice.n} {slice.title}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Section title="Blocked">
+          <Bullets items={next.blocked.map((slice) => `#${slice.n} ${slice.title}`)} />
+        </Section>
       ) : null}
     </div>
   );
 }
 
-function DocView({
-  doc,
-  taskId,
-  empty,
-  header,
-}: {
-  doc: Doc;
-  taskId: string;
-  empty: string;
-  header?: ReactNode;
-}) {
-  if (!doc) return <p className="text-sm text-muted-foreground">{empty}</p>;
+function DocView({ doc, taskId, empty }: { doc: Doc; taskId: string; empty: string }) {
+  if (!doc) return <Empty>{empty}</Empty>;
   return (
     <div className="space-y-3">
-      {header ??
-        (doc.kind !== "verification" && (
-          <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
+        {doc.kind === "verification" ? (
+          <Badge variant="outline">{doc.result ?? "pending"}</Badge>
+        ) : (
+          <>
             <Badge variant="secondary">{doc.status}</Badge>
             <Badge variant="outline">revision {doc.revision}</Badge>
-          </div>
-        ))}
+          </>
+        )}
+      </div>
       <Markdown taskId={taskId}>{doc.body}</Markdown>
     </div>
   );
 }
 
 function SliceList({ slices }: { slices: Slice[] }) {
-  if (slices.length === 0) return <p className="text-sm text-muted-foreground">No slices yet</p>;
+  if (slices.length === 0) return <Empty>No slices yet</Empty>;
   return (
     <div className="space-y-4">
       {slices.map((slice) => (
@@ -177,11 +150,7 @@ function SliceList({ slices }: { slices: Slice[] }) {
             )}
           </div>
           <p className="text-sm">{slice.goal}</p>
-          <ul className="list-disc space-y-0.5 pl-5 text-sm">
-            {slice.criteria.map((criterion) => (
-              <li key={criterion}>{criterion}</li>
-            ))}
-          </ul>
+          <Bullets items={slice.criteria} />
         </div>
       ))}
     </div>
@@ -189,7 +158,7 @@ function SliceList({ slices }: { slices: Slice[] }) {
 }
 
 function NoteList({ notes, taskId }: { notes: Note[]; taskId: string }) {
-  if (notes.length === 0) return <p className="text-sm text-muted-foreground">No notes yet</p>;
+  if (notes.length === 0) return <Empty>No notes yet</Empty>;
   return (
     <div className="space-y-4">
       {notes.map((note, i) => (
@@ -203,4 +172,27 @@ function NoteList({ notes, taskId }: { notes: Note[]; taskId: string }) {
       ))}
     </div>
   );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-1 text-sm font-medium">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function Bullets({ items }: { items: string[] }) {
+  return (
+    <ul className="list-disc space-y-0.5 pl-5 text-sm">
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+function Empty({ children }: { children: string }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
 }

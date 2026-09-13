@@ -74,8 +74,9 @@ describe("app", () => {
     expect(res.status).toBe(500);
   });
 
-  test("GET /api/* 404s unknown api routes as json", async () => {
-    const { app } = await setup();
+  test("GET /api/* 404s unknown api routes as json, even with dist present", async () => {
+    const { app, distDir } = await setup();
+    await writeFile(join(distDir, "index.html"), "<h1>board</h1>");
     const res = await app.request("/api/whatever");
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "not found" });
@@ -133,12 +134,5 @@ describe("app", () => {
     const { app } = await setup();
     const res = await app.request("/nope");
     expect(res.status).toBe(404);
-  });
-
-  test("GET /api/nope still 404s as json", async () => {
-    const { app } = await setup();
-    const res = await app.request("/api/nope");
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: "not found" });
   });
 });

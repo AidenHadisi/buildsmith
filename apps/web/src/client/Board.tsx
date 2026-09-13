@@ -19,7 +19,7 @@ export function Board() {
     <div className="min-h-screen bg-background p-6 text-foreground">
       <div className="flex gap-4 overflow-x-auto">
         {data.columns.map((column) => {
-          const tasks = data.tasks.filter((t) => t.column === column);
+          const tasks = data.tasks.filter((task) => task.column === column);
           return (
             <div key={column} className="w-72 shrink-0 rounded-lg bg-muted/40 p-3">
               <h2 className="mb-3 flex items-center justify-between text-sm font-medium capitalize">
@@ -27,8 +27,8 @@ export function Board() {
                 <span className="text-muted-foreground">{tasks.length}</span>
               </h2>
               <div className="space-y-2">
-                {tasks.map((t) => (
-                  <TaskCard key={t.id} task={t} />
+                {tasks.map((task) => (
+                  <TaskCard key={task.id} task={task} />
                 ))}
               </div>
             </div>
