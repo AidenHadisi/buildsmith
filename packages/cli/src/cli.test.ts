@@ -48,7 +48,18 @@ describe("help", () => {
     const { stdout, code } = await run(["--help"], { cwd: await tmp() });
     expect(code).toBe(0);
     expect(stdout).toContain("USAGE");
-    for (const group of ["init", "next", "task", "doc", "slice", "note", "project", "asset"]) {
+    for (const group of [
+      "init",
+      "next",
+      "brief",
+      "task",
+      "doc",
+      "slice",
+      "note",
+      "project",
+      "asset",
+      "prompt",
+    ]) {
       expect(stdout).toContain(group);
     }
     expect(stdout).toContain("--json");
@@ -329,6 +340,137 @@ describe("pipeline", () => {
 
     const res = await ok(["next", id]);
     expect(JSON.parse(res.stdout).stage).toBe("done");
+
+    const brief = await ok(["brief", id]);
+    expect(brief.stdout.trim()).toBe("nothing to do");
+    const briefJson = await ok(["brief", id, "--json"]);
+    expect(JSON.parse(briefJson.stdout)).toEqual({ action: "none" });
+  });
+});
+
+describe("brief command", () => {
+  test("brief at write-spec prints the task title and the cli command", async () => {
+    const { dir, a } = await setup();
+    const { stdout, code } = await run(["brief", a.id], { cwd: dir });
+    expect(code).toBe(0);
+    expect(stdout).toContain("Task A");
+    expect(stdout).toContain("bun ");
+    expect(stdout).not.toContain("{{");
+  });
+
+  test("brief --json after a spec write returns critique-spec with role and readonly", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n\nThe spec body.\n" });
+    const { stdout, code } = await run(["brief", a.id, "--json"], { cwd: dir });
+    expect(code).toBe(0);
+    const brief = JSON.parse(stdout);
+    expect(brief.action).toBe("critique-spec");
+    expect(brief.role).toBe("critic");
+    expect(brief.model).toBe("strong");
+    expect(brief.readonly).toBe(true);
+    expect(brief.text).toContain("The spec body.");
+  });
+
+  test("explicit action renders that template with reason (requested)", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    const { stdout, code } = await run(["brief", a.id, "write-spec", "--json"], { cwd: dir });
+    expect(code).toBe(0);
+    const brief = JSON.parse(stdout);
+    expect(brief.action).toBe("write-spec");
+    expect(brief.text).toContain("(requested)");
+  });
+
+  test("unknown action exits 1", async () => {
+    const { dir, a } = await setup();
+    const { stderr, code } = await run(["brief", a.id, "bogus"], { cwd: dir });
+    expect(code).toBe(1);
+    expect(stderr).toContain("unknown action bogus");
+  });
+
+  test("a repo override replaces the built-in template", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    await Bun.write(
+      join(dir, ".buildsmith", "prompts", "critique-spec.md"),
+      "---\nrole: critic\nmodel: fast\nreadonly: true\n---\nCUSTOM {{title}}\n",
+    );
+    const { stdout, code } = await run(["brief", a.id, "--json"], { cwd: dir });
+    expect(code).toBe(0);
+    const brief = JSON.parse(stdout);
+    expect(brief.model).toBe("fast");
+    expect(brief.text.trim()).toBe("CUSTOM Task A");
+  });
+
+  test(".extra.md fills {{extra}} without ejecting", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    await Bun.write(join(dir, ".buildsmith", "prompts", "critique-spec.extra.md"), "EXTRA RULE\n");
+    const { stdout, code } = await run(["brief", a.id], { cwd: dir });
+    expect(code).toBe(0);
+    expect(stdout).toContain("EXTRA RULE");
+  });
+});
+
+describe("prompt commands", () => {
+  test("prompt list is all built-in, then repo after eject", async () => {
+    const { dir } = await setup();
+    const before = await run(["prompt", "list"], { cwd: dir });
+    expect(before.code).toBe(0);
+    const entries = JSON.parse(before.stdout) as { action: string; source: string }[];
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((e) => e.source === "built-in")).toBe(true);
+
+    const ejected = await run(["prompt", "eject", "critique-spec"], { cwd: dir });
+    expect(ejected.code).toBe(0);
+    expect(JSON.parse(ejected.stdout).path).toBe(
+      join(await realpath(dir), ".buildsmith", "prompts", "critique-spec.md"),
+    );
+
+    const after = await run(["prompt", "list"], { cwd: dir });
+    const sources = Object.fromEntries(
+      (JSON.parse(after.stdout) as { action: string; source: string }[]).map((e) => [
+        e.action,
+        e.source,
+      ]),
+    );
+    expect(sources["critique-spec"]).toBe("repo");
+    expect(sources["write-spec"]).toBe("built-in");
+  });
+
+  test("eject twice errors", async () => {
+    const { dir } = await setup();
+    await run(["prompt", "eject", "critique-spec"], { cwd: dir });
+    const { stderr, code } = await run(["prompt", "eject", "critique-spec"], { cwd: dir });
+    expect(code).toBe(1);
+    expect(stderr).toContain("already ejected");
+  });
+
+  test("show prints the resolved raw text including frontmatter", async () => {
+    const { dir } = await setup();
+    const { stdout, code } = await run(["prompt", "show", "critique-spec"], { cwd: dir });
+    expect(code).toBe(0);
+    expect(stdout).toStartWith("---\nrole: critic");
+    expect(stdout).toContain("{{extra}}");
+  });
+
+  test("diff without an override prints no override", async () => {
+    const { dir } = await setup();
+    const { stdout, code } = await run(["prompt", "diff", "critique-spec"], { cwd: dir });
+    expect(code).toBe(0);
+    expect(stdout.trim()).toBe("no override for critique-spec");
+  });
+
+  test("diff after an edit shows the changed lines", async () => {
+    const { dir } = await setup();
+    await run(["prompt", "eject", "critique-spec"], { cwd: dir });
+    const path = join(dir, ".buildsmith", "prompts", "critique-spec.md");
+    const text = await Bun.file(path).text();
+    await Bun.write(path, text.replace("{{extra}}", "{{extra}}\nEDITED LINE"));
+    const { stdout, code } = await run(["prompt", "diff", "critique-spec"], { cwd: dir });
+    expect(code).toBe(0);
+    expect(stdout).toContain("+EDITED LINE");
+    expect(stdout).toMatch(/^-/m);
   });
 });
 
