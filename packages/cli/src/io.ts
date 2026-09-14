@@ -8,10 +8,15 @@ export const help = process.argv.some((arg) => arg === "--help" || arg === "-h")
 export function act<T extends ArgsDef>(
   fn: (store: Store, args: ParsedArgs<T>) => Promise<unknown>,
 ): (context: CommandContext<T>) => Promise<void> {
+  return guard(async (args) => fn(await openStore(process.cwd()), args));
+}
+
+export function guard<T extends ArgsDef>(
+  fn: (args: ParsedArgs<T>) => Promise<unknown>,
+): (context: CommandContext<T>) => Promise<void> {
   return async ({ args }) => {
     try {
-      const store = await openStore(process.cwd());
-      print(await fn(store, args));
+      print(await fn(args));
     } catch (err) {
       if (!(err instanceof Error)) throw err;
       console.error(json ? JSON.stringify({ error: err.message }) : err.message);

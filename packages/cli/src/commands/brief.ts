@@ -43,12 +43,11 @@ async function vars(store: Store, task: TaskRecord, action: string, reason: stri
   const kind = action.endsWith("-spec") ? "spec" : "architecture";
   const doc = await store.docs.read(task.id, kind);
   const pick = SLICE_PICK[action];
-  const matching = pick ? (await store.slices.list(task.id)).filter(pick) : [];
-  const slices = action === "unblock-slice" ? matching : matching.slice(0, 1);
+  const slice = pick ? (await store.slices.list(task.id)).find(pick) : undefined;
   const target = action.endsWith("-verification")
     ? "verification"
-    : slices[0]
-      ? `slice-${slices[0].n}`
+    : slice
+      ? `slice-${slice.n}`
       : kind;
   const verification = await store.docs.read(task.id, "verification");
   const notes = await store.notes.list(task.id, target);
@@ -62,13 +61,13 @@ async function vars(store: Store, task: TaskRecord, action: string, reason: stri
     reason,
     revision: String(doc && "revision" in doc ? doc.revision : 0),
     doc: doc?.body.trimEnd() ?? "(none)",
-    slice: slices.length > 0 ? slices.map(formatSlice).join("\n\n") : "(none)",
+    slice: slice ? formatSlice(slice) : "(none)",
     verification: verification?.body.trimEnd() ?? "(none)",
     notes:
       notes.length > 0
         ? notes
-            .map((n) => `- [${n.author}${n.verdict ? ` · ${n.verdict}` : ""}] ${n.body}`)
-            .join("\n")
+            .map((n) => `### ${n.author}${n.verdict ? ` · ${n.verdict}` : ""}\n\n${n.body}`)
+            .join("\n\n")
         : "(none)",
     cli: `bun ${Bun.main}`,
     extra: (await optional(repoPath(store.root, `${action}.extra`)))?.trimEnd() ?? "",

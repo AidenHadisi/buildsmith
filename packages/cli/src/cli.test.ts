@@ -402,6 +402,51 @@ describe("brief command", () => {
     expect(brief.text.trim()).toBe("CUSTOM Task A");
   });
 
+  test("an override with an unknown slot exits 1", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    await Bun.write(
+      join(dir, ".buildsmith", "prompts", "critique-spec.md"),
+      "---\nrole: critic\nmodel: fast\nreadonly: true\n---\n{{bogus}}\n",
+    );
+    const { stderr, code } = await run(["brief", a.id], { cwd: dir });
+    expect(code).toBe(1);
+    expect(stderr).toContain("unknown slot {{bogus}}");
+  });
+
+  test("brief at review-slice renders the architecture, the slice, and only its notes", async () => {
+    const dir = await tmp();
+    const ok = async (args: string[], stdin?: string) => {
+      const res = await run(args, { cwd: dir, stdin });
+      expect(res.code).toBe(0);
+      return res;
+    };
+
+    await ok(["init"]);
+    const created = await ok(["task", "create", "--title", "Feature"]);
+    const id = JSON.parse(created.stdout).id;
+    await ok(["doc", "write", id, "spec"], "# Spec\n");
+    await ok(["doc", "write", id, "architecture"], "# Architecture\n\nThe arch body.\n");
+    for (const kind of ["spec", "architecture"]) {
+      for (const status of ["critiqued", "reviewed", "approved"]) {
+        await ok(["doc", "status", id, kind, status]);
+      }
+    }
+    await ok(["slice", "add", id, "--title", "One", "--goal", "First goal"]);
+    await ok(["slice", "update", id, "1", "--status", "review", "--commit", "abc123"]);
+    await ok(["note", "add", id, "--author", "coder", "--target", "slice-1"], "Slice note.");
+    await ok(["note", "add", id, "--author", "critic", "--target", "spec"], "Spec note.");
+
+    const { stdout } = await ok(["brief", id, "--json"]);
+    const brief = JSON.parse(stdout);
+    expect(brief.action).toBe("review-slice");
+    expect(brief.text).toContain("The arch body.");
+    expect(brief.text).toContain("#1 ");
+    expect(brief.text).toContain("commit: abc123");
+    expect(brief.text).toContain("Slice note.");
+    expect(brief.text).not.toContain("Spec note.");
+  });
+
   test(".extra.md fills {{extra}} without ejecting", async () => {
     const { dir, a } = await setup();
     await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });

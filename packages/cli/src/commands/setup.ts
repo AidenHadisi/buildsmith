@@ -2,7 +2,7 @@ import { copyFile, lstat, mkdir, rm, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { defineCommand } from "citty";
-import { asEnum, json, print } from "../io.ts";
+import { asEnum, guard } from "../io.ts";
 
 const HOSTS = ["cursor", "claude", "codex"] as const;
 const PLUGIN = join(import.meta.dir, "../../plugin");
@@ -20,27 +20,18 @@ export default defineCommand({
     },
     dryRun: { type: "boolean", description: "Print actions without changing anything" },
   },
-  async run({ args }) {
-    try {
-      print(await setup(args._.length ? args._ : [...HOSTS], Boolean(args.dryRun)));
-    } catch (err) {
-      if (!(err instanceof Error)) throw err;
-      console.error(json ? JSON.stringify({ error: err.message }) : err.message);
-      process.exitCode = 1;
-    }
-  },
+  run: guard((args) => setup(args._.length ? args._ : [...HOSTS], Boolean(args.dryRun))),
 });
 
-async function exec(cmd: string[], dry: boolean): Promise<Status> {
-  if (dry) return "dry-run";
-  if (!Bun.which(cmd[0]!)) return "printed";
+async function run(cmd: string[]): Promise<Status> {
   const proc = Bun.spawn(cmd, { stdio: ["inherit", "inherit", "inherit"] });
-  if (await proc.exited) throw new Error(cmd.join(" "));
+  const code = await proc.exited;
+  if (code) throw new Error(`${cmd.join(" ")} exited ${code}`);
   return "done";
 }
 
 async function setup(names: string[], dry: boolean): Promise<Step[]> {
-  const home = homedir() || process.env.HOME!;
+  const home = homedir();
   const steps: Step[] = [];
   for (const host of names.map((n) => asEnum("host", n, HOSTS))) {
     if (host === "cursor") {
@@ -63,8 +54,13 @@ async function setup(names: string[], dry: boolean): Promise<Step[]> {
         [host, "plugin", "marketplace", "add", "AidenHadisi/buildsmith"],
         [host, "plugin", verb, "buildsmith@buildsmith"],
       ];
+      const bin = Bun.which(host);
       for (const cmd of cmds) {
-        steps.push({ host, action: `run: ${cmd.join(" ")}`, status: await exec(cmd, dry) });
+        steps.push({
+          host,
+          action: `run: ${cmd.join(" ")}`,
+          status: dry ? "dry-run" : bin ? await run(cmd) : "printed",
+        });
       }
       if (host !== "codex") continue;
       const src = join(PLUGIN, "codex/buildsmith-worker.toml");

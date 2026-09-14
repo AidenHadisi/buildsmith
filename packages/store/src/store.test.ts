@@ -227,6 +227,8 @@ describe("next", () => {
     await store.slices.add(task.id, { title: "Two", goal: "g", criteria: ["c"] });
     await store.slices.update(task.id, 2, { status: "doing" });
     expect((await next(store, task.id)).action).toBe("review-slice");
+    // blocked beats review
+    await store.slices.update(task.id, 2, { status: "review" });
     await store.slices.update(task.id, 1, { status: "blocked" });
     const blocked = await next(store, task.id);
     expect(blocked.action).toBe("unblock-slice");
