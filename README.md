@@ -63,6 +63,26 @@ bunx buildsmith doc write <id> spec --file spec.md   # or pipe the body on stdin
 
 `<id>` is a task UUID or any unique prefix/suffix of one. Outside the monorepo, run `bun packages/cli/src/main.ts`.
 
+## Plugin
+
+An orchestrator skill (`buildsmith`) plus two shim agents (`buildsmith-worker`, `buildsmith-reader`)
+for Cursor, Claude Code, and Codex. Subagents never see the loop; they run `buildsmith brief <id>`
+and follow it.
+
+```sh
+bunx buildsmith setup [cursor|claude|codex]   # default: all three; --dry-run prints, touches nothing
+```
+
+If `claude` or `codex` is not on `PATH`, setup prints the plugin commands to run by hand.
+
+Customize prompts with `buildsmith prompt list|show|eject|diff`. A file at
+`.buildsmith/prompts/<action>.md` replaces the built-in template; `<action>.extra.md` fills
+`{{extra}}` without ejecting.
+
+The loop: `next` names the due action; `brief` renders that action's template; a generic subagent
+follows the brief and records the result through the CLI; the skill repeats. Humans gate only at
+`approve-spec` and `approve-architecture`.
+
 ## License
 
 [MIT](LICENSE) © Aiden Hadisi
