@@ -44,7 +44,7 @@ buildsmith step <id>
 The main agent is the planner: it writes the spec and architecture with you, and when a critic proposes a better design it rules **Adopt** or **Reject** per point, with reasons, recorded as a note. The next critic sees those rulings and can't re-raise a settled point without new evidence. Critiquing, reviewing, coding, code-reviewing and testing are always dispatched; the main agent never grades its own work.
 
 <p align="center">
-  <img src="docs/images/task-notes.png" width="560" alt="A task's notes: critic proposes a better design, the planner rules Adopt/Reject per point, a fresh critic holds, the reviewer passes">
+  <img src="docs/images/task-notes.png" width="760" alt="A task's notes: critic proposes a better design, the planner rules Adopt/Reject per point, a fresh critic holds, the reviewer passes">
 </p>
 
 ## Pipeline
