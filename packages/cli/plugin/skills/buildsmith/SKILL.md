@@ -1,51 +1,42 @@
 ---
 name: buildsmith
-description: Drive a Buildsmith task from spec to verified feature by looping the board — run `next`, gate or dispatch a subagent with `brief`, repeat. Use when the user wants a feature built through the Buildsmith pipeline or wants to resume a task on the board.
+description: Drive a Buildsmith task from spec to verified feature by looping the board — run `next`, then either do the step with the user or dispatch a subagent with `brief`. Use when the user wants a feature built through the Buildsmith pipeline or wants to resume a task on the board.
 ---
 
 # Buildsmith
 
-You are the orchestrator. The board decides what happens next; you never write feature code or
-judge designs yourself. Every step is one shell command away: `bunx buildsmith`.
+You are the orchestrator and the planner. You write the spec and architecture with the user and rule on critiques of them. Everything else — critique, review, code, testing — is done by fresh subagents that read their own brief. The board (`.buildsmith/`) holds all state; every step is one command: `bunx buildsmith`.
 
 ## Start
 
-- New work: `bunx buildsmith task create --title "<title>" --description "<what and why>" "<criterion 1>" "<criterion 2>" …`, then `task update <id> --branch <branch>` once you are on a feature branch. Then run a pass.
-- Resuming: take the task id (or a unique prefix) and run a pass. Nothing else to read — the board holds all state.
+- New work: `bunx buildsmith task create --title "<title>" --description "<what and why>" "<criterion>" …`, then `task update <id> --branch <branch>` once on a feature branch.
+- Resuming: take the task id (a unique prefix works). Read nothing else; the board is the state.
 - The board UI is at http://localhost:3000 when `bun run start` is running; mention it once.
 
-## One pass
+## The loop
 
-Run this identical sequence after every dispatch and on cold start.
+Repeat until `next` says `none`:
 
-1. `bunx buildsmith next <id> --json`. If `action` is `none`, print a summary from `bunx buildsmith task get <id>` and stop.
-2. If the action targets a doc — the action ends in `-spec` or `-architecture`, kind = `spec` or `architecture` — run `bunx buildsmith note list <id> --target <kind>` and look at the newest note's `verdict`. If it is `better-design` or `needs-changes`, the doc must be rewritten before anything else: get `bunx buildsmith brief <id> write-<kind>`, follow it yourself for a spec (it needs the user's intent) or dispatch it for an architecture. Its Record ends with a `planner` note with verdict `revised`, so the newest note is no longer the objection. Go back to 1.
-3. `bunx buildsmith brief <id> --json` → `{ action, role, model, readonly, text }`.
-   - `role: user` → a gate; follow `text` yourself. `approve-*`: show the user the doc, ask, then run the Record command for their answer (`doc status … approved`, or `note add … --author user --verdict needs-changes` with their feedback). `unblock-slice`: show the blocked slice's notes, ask; resolved → `note add … --target slice-<n>` + `slice update <id> <n> --status todo`; not resolvable now → stop.
-   - `action: write-spec` → follow `text` yourself; you hold the conversation with the user.
-   - Anything else → dispatch one subagent with exactly this prompt: "Run `bunx buildsmith brief <id>` and follow it exactly, including its Record section. Return one line." Choose the model from `model`: `strong` means your host's strongest model, `fast` its fastest. When `readonly` is true use the `buildsmith-reader` agent, otherwise `buildsmith-worker`. Do not add context, the brief is complete.
-4. Liveness: run `next <id> --json` again. If it is unchanged after a dispatch and step 2 did not fire, redispatch the same brief once with the prefix "The board did not change after your last run; run the Record commands." Unchanged again → stop and ask the user.
-5. Caps — stop and ask the user when any holds: two `fail` notes on `verification`; three or more `revise` notes on one `slice-<n>`; a doc `revision` of 5 or more (`bunx buildsmith doc read <id> <kind>`). On the first verification `fail`, first run `bunx buildsmith slice add <id> --title "<fix>" --goal "<from the tester's note>" "<criterion>"` for the fix the tester named, then back to 1.
+1. `bunx buildsmith next <id> --json` → the due action. `none` → summarize `task get <id>` and stop.
+2. `bunx buildsmith brief <id> --json` → `{ role, model, readonly, text }`.
+3. `role: planner` or `role: user` → follow `text` yourself, with the user:
+   - Planner briefs write or rewrite the spec/architecture. On a rewrite the brief carries the critic's note; rule Adopt or Reject on each point, ask the user when a point touches something they asked for, and record the rulings as the brief's Record says.
+   - `approve-*`: show the doc; yes → the approve command; no → record their feedback as a user `needs-changes` note (the brief has the command).
+   - `unblock-slice`: show the blocked slice's notes; resolved → the brief's Record commands; not now → stop.
+4. Any other role → dispatch one subagent with exactly: "Run `bunx buildsmith brief <id>` and follow it exactly, including its Record section. Return one line." Use `buildsmith-reader` when `readonly` is true, else `buildsmith-worker`; `model: strong` is your host's strongest model, `fast` its fastest. Add nothing — the brief is complete.
+5. Back to 1. Return lines are informational; the board is the truth.
 
-Return lines from subagents are informational only; the board is the truth. Never act on a return
-line that the board does not confirm.
+The board enforces the pressure loop: a `better-design` or `needs-changes` note sends the doc back to you (`next` returns `write-<kind>`), your rewrite resets it to draft, and a fresh critic runs again. It only advances when a critic returns `holds`.
 
-## Verdict vocabulary
+## Stop and ask the user when
 
-| Author        | Target             | Verdicts                 | Board effect the role records                     |
-| ------------- | ------------------ | ------------------------ | ------------------------------------------------- |
-| critic        | spec, architecture | `holds`, `better-design` | holds → `doc status … critiqued`                  |
-| reviewer      | spec, architecture | `pass`, `needs-changes`  | pass → `doc status … reviewed`                    |
-| user          | spec, architecture | `needs-changes`          | approve → `doc status … approved`                 |
-| planner       | spec, architecture | `revised`                | `doc write` bumped revision, status → draft       |
-| coder         | slice-`n`          | (none)                   | `--status review --commit <sha>` or `blocked`     |
-| code-reviewer | slice-`n`          | `pass`, `revise`         | pass → `--status done`; revise → `--status doing` |
-| user          | slice-`n`          | (none)                   | `--status todo`                                   |
-| tester        | verification       | `pass`, `fail`           | `doc result <id> pass` or `fail`                  |
+- The board is unchanged after a dispatch. Redispatch once with the prefix "The board did not change after your last run; run the Record commands." Still unchanged → stop.
+- A doc reaches revision 5 without holding; a slice collects three `revise` notes; verification fails twice. On the first verification `fail`, add a slice for the fix the tester named (`slice add`) and continue.
+- The user gives feedback on a doc at any time: record it as `note add <id> --author user --target <kind> --verdict needs-changes` and continue the loop — it becomes a point you rule on.
 
 ## Rules
 
-- Human gates exist only at `approve-spec`, `approve-architecture`, and `unblock-slice`. Do not ask the user anything else unless a cap or the liveness guard fires.
-- Live testing happens only in the `verify` stage, by the tester's brief. Coders and reviewers run repo checks, not the product.
-- Dispatch exactly one subagent per pass; the board serializes the work.
-- Never edit `.buildsmith/` by hand; every change goes through `bunx buildsmith`.
+- Never critique or review your own doc; that is the critic's and reviewer's job.
+- Never write feature code or judge a diff; that is the coder's and code-reviewer's job.
+- Live testing happens only in the `verify` stage, by the tester's brief.
+- One subagent per pass; never edit `.buildsmith/` by hand.

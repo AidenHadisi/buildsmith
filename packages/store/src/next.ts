@@ -9,11 +9,20 @@ export type NextAction = {
 
 const STEPS = { draft: "critique", critiqued: "review", reviewed: "approve" } as const;
 
-function docStep(kind: "spec" | "architecture", doc: TaskDoc | null): NextAction | null {
+async function docStep(
+  store: Store,
+  taskId: string,
+  kind: "spec" | "architecture",
+  doc: TaskDoc | null,
+): Promise<NextAction | null> {
   if (!doc || doc.kind !== kind) {
     return { stage: kind, action: `write-${kind}`, reason: `${kind} does not exist` };
   }
   if (doc.status === "approved") return null;
+  const verdict = (await store.notes.list(taskId, kind)).at(-1)?.verdict;
+  if (verdict === "better-design" || verdict === "needs-changes") {
+    return { stage: kind, action: `write-${kind}`, reason: `${kind} sent back: ${verdict}` };
+  }
   const verb = STEPS[doc.status];
   return { stage: kind, action: `${verb}-${kind}`, reason: `${kind} is ${doc.status}` };
 }
@@ -22,7 +31,7 @@ export async function next(store: Store, taskId: string): Promise<NextAction> {
   await store.tasks.get(taskId);
 
   for (const kind of ["spec", "architecture"] as const) {
-    const step = docStep(kind, await store.docs.read(taskId, kind));
+    const step = await docStep(store, taskId, kind, await store.docs.read(taskId, kind));
     if (step) return step;
   }
 
