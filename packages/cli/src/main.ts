@@ -11,6 +11,7 @@ import project from "./commands/project.ts";
 import prompt from "./commands/prompt.ts";
 import setup from "./commands/setup.ts";
 import slice from "./commands/slice.ts";
+import step from "./commands/step.ts";
 import task from "./commands/task.ts";
 import { help } from "./io.ts";
 
@@ -23,7 +24,7 @@ const main = defineCommand({
   args: {
     json: { type: "boolean", description: "JSON output (default when stdout is not a TTY)" },
   },
-  subCommands: { init, next, brief, task, doc, slice, note, project, asset, prompt, setup },
+  subCommands: { init, next, step, brief, task, doc, slice, note, project, asset, prompt, setup },
 });
 
 runMain(main, {

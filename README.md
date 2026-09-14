@@ -80,11 +80,23 @@ Customize prompts with `buildsmith prompt list|show|eject|diff`. A file at
 `.buildsmith/prompts/<action>.md` replaces the built-in template; `<action>.extra.md` fills
 `{{extra}}` without ejecting.
 
-The loop: `next` names the due action; `brief` renders that action's template. The main agent
-writes the spec and architecture with you and rules on critiques (Adopt/Reject, recorded as notes);
-every other role runs as a fresh subagent that follows its brief and records the result through
-the CLI. A `better-design` note sends a doc back for rewrite until a critic holds. Humans gate only
-at `approve-spec` and `approve-architecture`.
+The loop: the main agent runs `buildsmith step <id>`, which returns `self` (a brief for the main
+agent: write the spec with you, rule on critiques, ask for approval), `dispatch` (agent, model and
+prompt for a fresh subagent that runs `buildsmith brief <id>` and records its result through the
+CLI), `ask` (a cap was hit: revision 5, three revise cycles, two failed verifications, or an
+unchanged board) or `done`. A `better-design` note sends a doc back for rewrite until a critic
+holds. Humans gate only at `approve-spec` and `approve-architecture`.
+
+Models: templates name a tier (`model: strong|fast`); map tiers to your host's model names in
+`.buildsmith/config.yml`:
+
+```yaml
+models:
+  strong: claude-opus-4.6
+  fast: gemini-3.5-flash
+```
+
+An ejected template may also name a concrete model directly.
 
 ## License
 

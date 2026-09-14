@@ -302,4 +302,11 @@ describe("openStore", () => {
     dirs.push(dir);
     expect(openStore(dir)).rejects.toThrow("no .buildsmith");
   });
+
+  test("config models round-trip", async () => {
+    const { dir } = await setup();
+    await writeFile(join(dir, ".buildsmith", "config.yml"), "models:\n  strong: my-strong\n");
+    const store = await openStore(dir);
+    expect(store.config.models).toEqual({ strong: "my-strong" });
+  });
 });
