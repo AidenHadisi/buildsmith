@@ -207,11 +207,7 @@ export async function openStore(cwd: string) {
         }
         const prev = await readRecordOrNull(path, pipelineDocSchema);
         const data: PipelineDocFrontmatter = prev
-          ? {
-              status: prev.data.status === "approved" ? "draft" : prev.data.status,
-              revision:
-                prev.data.status === "approved" ? prev.data.revision + 1 : prev.data.revision,
-            }
+          ? { status: "draft", revision: prev.data.revision + 1 }
           : { status: "draft", revision: 1 };
         await writeAtomic(path, stringifyRecord(data, body));
         return { kind, ...data, body };
@@ -488,8 +484,15 @@ function slugify(title: string, max = 48): string {
 }
 
 function parseNotes(raw: string): NoteEntry[] {
-  const entries: NoteEntry[] = [];
+  // Only headings that start with a timestamp open a note; any other `##` belongs to the body.
+  const grouped: { heading: string; body: string }[] = [];
   for (const section of splitSections(raw).sections) {
+    const last = grouped.at(-1);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(section.heading) || !last) grouped.push({ ...section });
+    else last.body = `${last.body}\n\n## ${section.heading}\n\n${section.body}`.trim();
+  }
+  const entries: NoteEntry[] = [];
+  for (const section of grouped) {
     const [at, author, target, ...rest] = section.heading.split(" · ").map((p) => p.trim());
     const parsed = noteEntrySchema.safeParse({
       at,

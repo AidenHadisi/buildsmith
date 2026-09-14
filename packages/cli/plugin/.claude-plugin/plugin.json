@@ -1,0 +1,10 @@
+{
+  "name": "buildsmith",
+  "description": "Board-driven agentic coding pipeline: spec, architecture, slices, and live verification, each step briefed from the Buildsmith board.",
+  "version": "0.1.0",
+  "author": { "name": "Aiden Hadisi" },
+  "license": "MIT",
+  "repository": "https://github.com/AidenHadisi/buildsmith",
+  "skills": "./skills/",
+  "agents": "./agents/"
+}

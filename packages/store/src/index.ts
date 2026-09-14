@@ -7,7 +7,7 @@ export {
   type TaskRecord,
   type VerificationDoc,
 } from "./store.ts";
-export { findRoot, initRoot } from "./files.ts";
+export { findRoot, initRoot, splitFrontmatter, parseYaml } from "./files.ts";
 export { next, type NextAction } from "./next.ts";
 export { watch, type WatchEvent } from "./watch.ts";
 export {

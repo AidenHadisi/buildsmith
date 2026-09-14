@@ -1,0 +1,7 @@
+{
+  "name": "buildsmith",
+  "version": "0.1.0",
+  "description": "Board-driven agentic coding pipeline: spec, architecture, slices, and live verification, each step briefed from the Buildsmith board.",
+  "skills": "./skills/",
+  "hooks": {}
+}

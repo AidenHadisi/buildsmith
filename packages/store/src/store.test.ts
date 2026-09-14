@@ -120,6 +120,18 @@ describe("docs slices notes project assets", () => {
     if (spec.kind !== "spec") throw new Error("expected spec");
     expect(spec.status).toBe("draft");
     expect(spec.revision).toBe(1);
+
+    const rewrittenDraft = await store.docs.write(task.id, "spec", "# Spec\n\nDo the thing.\n");
+    if (rewrittenDraft.kind !== "spec") throw new Error("expected spec");
+    expect(rewrittenDraft.status).toBe("draft");
+    expect(rewrittenDraft.revision).toBe(2);
+
+    await store.docs.setStatus(task.id, "spec", "critiqued");
+    const rewrittenCritiqued = await store.docs.write(task.id, "spec", "# Spec\n\nDo the thing.\n");
+    if (rewrittenCritiqued.kind !== "spec") throw new Error("expected spec");
+    expect(rewrittenCritiqued.status).toBe("draft");
+    expect(rewrittenCritiqued.revision).toBe(3);
+
     await store.docs.setStatus(task.id, "spec", "critiqued");
     await store.docs.setStatus(task.id, "spec", "reviewed");
     await store.docs.setStatus(task.id, "spec", "approved");
@@ -128,7 +140,7 @@ describe("docs slices notes project assets", () => {
     const rewritten = await store.docs.write(task.id, "spec", "# Spec v2\n");
     if (rewritten.kind !== "spec") throw new Error("expected spec");
     expect(rewritten.status).toBe("draft");
-    expect(rewritten.revision).toBe(2);
+    expect(rewritten.revision).toBe(4);
 
     await store.docs.write(task.id, "architecture", "# Arch\n");
     await store.docs.setStatus(task.id, "architecture", "approved");
@@ -151,6 +163,15 @@ describe("docs slices notes project assets", () => {
     });
     expect(note.target).toBe("spec");
     expect((await store.notes.list(task.id, "spec")).length).toBe(1);
+
+    await store.notes.add(task.id, {
+      author: "critic",
+      target: "spec",
+      body: "## Verdict\n\nholds\n\n## Alternatives considered\n\n- none",
+    });
+    const critique = (await store.notes.list(task.id, "spec")).at(-1);
+    expect(critique?.body).toBe("## Verdict\n\nholds\n\n## Alternatives considered\n\n- none");
+    expect((await store.notes.list(task.id, "spec")).length).toBe(2);
 
     await store.docs.write(task.id, "verification", "Ran the board.\n");
     await store.docs.setResult(task.id, "verification", "pass");
@@ -198,11 +219,22 @@ describe("next", () => {
     expect((await next(store, task.id)).action).toBe("add-slice");
     await store.slices.add(task.id, { title: "One", goal: "g", criteria: ["c"] });
     expect((await next(store, task.id)).action).toBe("work-slice");
+    await store.slices.update(task.id, 1, { status: "review" });
+    expect(await next(store, task.id)).toMatchObject({
+      action: "review-slice",
+      reason: "slice 1 is in review",
+    });
+    await store.slices.add(task.id, { title: "Two", goal: "g", criteria: ["c"] });
+    await store.slices.update(task.id, 2, { status: "doing" });
+    expect((await next(store, task.id)).action).toBe("review-slice");
+    // blocked beats review
+    await store.slices.update(task.id, 2, { status: "review" });
     await store.slices.update(task.id, 1, { status: "blocked" });
     const blocked = await next(store, task.id);
     expect(blocked.action).toBe("unblock-slice");
     expect(blocked.blocked?.length).toBe(1);
     await store.slices.update(task.id, 1, { status: "done" });
+    await store.slices.update(task.id, 2, { status: "done" });
 
     expect((await next(store, task.id)).action).toBe("write-verification");
     await store.docs.write(task.id, "verification", "saw it");
