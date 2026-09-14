@@ -31,7 +31,7 @@ export function TaskSheet() {
     >
       <SheetContent
         side="right"
-        className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-2xl data-[side=right]:lg:w-[max(42rem,40vw)] data-[side=right]:lg:max-w-[max(42rem,40vw)]"
+        className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-3xl data-[side=right]:lg:w-[max(54rem,55vw)] data-[side=right]:lg:max-w-[max(54rem,55vw)]"
       >
         <SheetHeader>
           <div className="flex items-center gap-2">
@@ -226,18 +226,52 @@ function SliceList({ slices }: { slices: Slice[] }) {
   );
 }
 
+const verdictStyles: Record<string, string> = {
+  holds: "bg-success/10 text-success",
+  pass: "bg-success/10 text-success",
+  approved: "bg-success/10 text-success",
+  "better-design": "bg-warning/10 text-warning",
+  "needs-changes": "bg-warning/10 text-warning",
+  revise: "bg-warning/10 text-warning",
+  fail: "bg-destructive/10 text-destructive",
+  revised: "bg-info/10 text-info",
+};
+
+const noteTime = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+// Headings inside a note are section labels, not sheet-level headings.
+const noteProse =
+  "prose-headings:mt-5 prose-headings:mb-1.5 prose-headings:text-xs prose-headings:font-semibold prose-headings:uppercase prose-headings:tracking-wider prose-headings:text-muted-foreground prose-table:text-xs [&>:first-child]:mt-0";
+
 function NoteList({ notes, taskId }: { notes: Note[]; taskId: string }) {
   if (notes.length === 0) return <Empty>No notes yet</Empty>;
   return (
-    <div className="space-y-4">
+    <div className="divide-y divide-border">
       {notes.map((note, i) => (
-        <div key={i} className="space-y-1">
-          <p className="text-sm">
-            {[note.author, note.target, note.verdict].filter(Boolean).join(" · ")}
-          </p>
-          <p className="text-xs text-muted-foreground">{new Date(note.at).toLocaleString()}</p>
-          <Markdown taskId={taskId}>{note.body}</Markdown>
-        </div>
+        <article key={i} className="grid grid-cols-[8.5rem_1fr] py-5 first:pt-1 last:pb-1">
+          <div className="sticky top-4 flex flex-col items-start gap-1.5 self-start pr-4">
+            {note.verdict && (
+              <Badge className={verdictStyles[note.verdict] ?? "bg-secondary"}>
+                {note.verdict}
+              </Badge>
+            )}
+            <p className="text-sm font-medium">{note.author}</p>
+            <p className="font-mono text-xs text-muted-foreground">{note.target}</p>
+            <time dateTime={note.at} className="text-xs text-muted-foreground/70">
+              {noteTime.format(new Date(note.at))}
+            </time>
+          </div>
+          <div className="min-w-0 border-l border-border pl-6">
+            <Markdown taskId={taskId} className={noteProse}>
+              {note.body}
+            </Markdown>
+          </div>
+        </article>
       ))}
     </div>
   );

@@ -1,9 +1,17 @@
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export function Markdown({ taskId, children }: { taskId: string; children: string }) {
+export function Markdown({
+  taskId,
+  className = "",
+  children,
+}: {
+  taskId: string;
+  className?: string;
+  children: string;
+}) {
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
+    <div className={`prose prose-sm dark:prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={(url) =>
