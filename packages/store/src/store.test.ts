@@ -164,6 +164,15 @@ describe("docs slices notes project assets", () => {
     expect(note.target).toBe("spec");
     expect((await store.notes.list(task.id, "spec")).length).toBe(1);
 
+    await store.notes.add(task.id, {
+      author: "critic",
+      target: "spec",
+      body: "## Verdict\n\nholds\n\n## Alternatives considered\n\n- none",
+    });
+    const critique = (await store.notes.list(task.id, "spec")).at(-1);
+    expect(critique?.body).toBe("## Verdict\n\nholds\n\n## Alternatives considered\n\n- none");
+    expect((await store.notes.list(task.id, "spec")).length).toBe(2);
+
     await store.docs.write(task.id, "verification", "Ran the board.\n");
     await store.docs.setResult(task.id, "verification", "pass");
     expect((await store.docs.read(task.id, "verification"))?.kind).toBe("verification");

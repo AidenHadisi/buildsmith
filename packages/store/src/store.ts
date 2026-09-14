@@ -484,8 +484,15 @@ function slugify(title: string, max = 48): string {
 }
 
 function parseNotes(raw: string): NoteEntry[] {
-  const entries: NoteEntry[] = [];
+  // Only headings that start with a timestamp open a note; any other `##` belongs to the body.
+  const grouped: { heading: string; body: string }[] = [];
   for (const section of splitSections(raw).sections) {
+    const last = grouped.at(-1);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(section.heading) || !last) grouped.push({ ...section });
+    else last.body = `${last.body}\n\n## ${section.heading}\n\n${section.body}`.trim();
+  }
+  const entries: NoteEntry[] = [];
+  for (const section of grouped) {
     const [at, author, target, ...rest] = section.heading.split(" · ").map((p) => p.trim());
     const parsed = noteEntrySchema.safeParse({
       at,
