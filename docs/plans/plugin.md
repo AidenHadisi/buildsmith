@@ -34,7 +34,7 @@ Frozen on approval. A box is checked only with evidence from a live run. Writes 
 - [x] **Plugin package** — proof: `packages/cli/plugin/` has `skills/buildsmith/SKILL.md`, `agents/buildsmith-worker.md`, `agents/buildsmith-reader.md`, `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json` (with `"hooks": {}`); root `.claude-plugin/marketplace.json` points at `./packages/cli/plugin`; all JSON parses; frontmatter has each host's required fields; `agent --plugin-dir packages/cli/plugin` (Cursor CLI) lists the `buildsmith` skill or the symlink in `~/.cursor/plugins/local/` is present and the user sees the skill after reload.
 - [x] **Setup** — proof: `setup --dry-run` prints the exact actions for cursor, claude and codex; `HOME=$(mktemp -d) setup cursor` creates `$HOME/.cursor/plugins/local/buildsmith` → plugin dir; `setup claude` / `setup codex` with no CLI on PATH print the commands and exit 0; `setup codex` writes `$HOME/.codex/agents/buildsmith-worker.toml`.
 - [x] **Dogfood** — proof: temp repo with a task and a draft spec; a generic subagent told only "run `<cli> brief <id>` and follow it" leaves a `note` with a verdict for `critique-spec` and advances status only on Holds; the same instruction at `work-slice` implements a trivial slice and moves it to `review`; at `review-slice` it moves the slice to `done` (or back to `doing`) with a note. Board state checked after each via `task get`, `note list`, `slice list`.
-- [ ] **Green checks** — proof: `bun run check`, `bun run typecheck`, `bun test`, `bun run build`; README has a "Plugin" section.
+- [x] **Green checks** — proof: `bun run check`, `bun run typecheck`, `bun test`, `bun run build`; README has a "Plugin" section.
 
 ## Architecture
 
