@@ -20,6 +20,7 @@ export const configSchema = z.looseObject({
     .min(1)
     .default([...DEFAULT_COLUMNS]),
   verify: z.string().default(""),
+  models: z.object({ strong: z.string().optional(), fast: z.string().optional() }).default({}),
 });
 export type Config = z.infer<typeof configSchema>;
 

@@ -14,11 +14,10 @@ export const ROLES = [
   "code-reviewer",
   "tester",
 ] as const;
-export const MODELS = ["strong", "fast"] as const;
 
 export type Prompt = {
   role: (typeof ROLES)[number];
-  model: (typeof MODELS)[number];
+  model: string;
   readonly: boolean;
   body: string;
 };
@@ -45,9 +44,11 @@ export async function resolve(root: string, action: string) {
 export async function load(path: string): Promise<Prompt> {
   const { fm, body } = splitFrontmatter(await Bun.file(path).text());
   const data = (fm === null ? {} : (parseYaml(fm) ?? {})) as Record<string, unknown>;
+  const model = typeof data.model === "string" ? data.model.trim() : "";
+  if (!model) throw new Error(`missing model in ${path}`);
   return {
     role: asEnum("role", String(data.role), ROLES),
-    model: asEnum("model", String(data.model), MODELS),
+    model,
     readonly: data.readonly === true,
     body: body.trimStart(),
   };

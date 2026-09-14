@@ -67,7 +67,12 @@ Record the result and a note (body from stdin); on fail the note names the fix t
 EOF
 ```
 
-Use `fail` in both commands when any criterion failed or is blocked.
+Use `fail` in both commands when any criterion failed or is blocked, and add the fix as a slice so
+the coder picks it up next:
+
+```sh
+{{cli}} slice add {{id}} --title "<fix>" --goal "<what must change and why>" "<the failing criterion, as the slice's criterion>"
+```
 
 Return one line: `verification: pass` or `verification: fail — <failing criterion>: <fix>`.
 

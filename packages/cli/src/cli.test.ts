@@ -51,6 +51,7 @@ describe("help", () => {
     for (const group of [
       "init",
       "next",
+      "step",
       "brief",
       "task",
       "doc",
@@ -345,6 +346,69 @@ describe("pipeline", () => {
     expect(brief.stdout.trim()).toBe("nothing to do");
     const briefJson = await ok(["brief", id, "--json"]);
     expect(JSON.parse(briefJson.stdout)).toEqual({ action: "none" });
+
+    const step = await ok(["step", id, "--json"]);
+    expect(JSON.parse(step.stdout)).toEqual({ do: "done", action: "none" });
+  });
+});
+
+describe("step command", () => {
+  const step = async (dir: string, id: string) => {
+    const res = await run(["step", id, "--json"], { cwd: dir });
+    expect(res.code).toBe(0);
+    return JSON.parse(res.stdout);
+  };
+
+  test("fresh task is a self step at write-spec with the rendered brief", async () => {
+    const { dir, a } = await setup();
+    const res = await step(dir, a.id);
+    expect(res.do).toBe("self");
+    expect(res.action).toBe("write-spec");
+    expect(res.text).toContain("Task A");
+  });
+
+  test("after a spec write dispatches critique-spec to the reader with the configured model", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    const res = await step(dir, a.id);
+    expect(res.do).toBe("dispatch");
+    expect(res.action).toBe("critique-spec");
+    expect(res.agent).toBe("buildsmith-reader");
+    expect(res.model).toBe("strong");
+    expect(res.prompt).toContain(`brief ${a.id}`);
+
+    const config = join(dir, ".buildsmith", "config.yml");
+    const text = await Bun.file(config).text();
+    await Bun.write(config, `${text}models:\n  strong: my-strong-model\n`);
+    expect((await step(dir, a.id)).model).toBe("my-strong-model");
+  });
+
+  test("an unchanged board nudges once, then asks, then clears after a change", async () => {
+    const { dir, a } = await setup();
+    await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
+    expect((await step(dir, a.id)).prompt).toStartWith("Run ");
+    expect((await step(dir, a.id)).prompt).toStartWith("The board did not change");
+    const stalled = await step(dir, a.id);
+    expect(stalled.do).toBe("ask");
+    expect(stalled.text).toContain("critique-spec");
+
+    await run(["note", "add", a.id, "--author", "critic", "--target", "spec"], {
+      cwd: dir,
+      stdin: "Looked.",
+    });
+    const fresh = await step(dir, a.id);
+    expect(fresh.do).toBe("dispatch");
+    expect(fresh.prompt).toStartWith("Run ");
+  });
+
+  test("a spec at revision 5 asks instead of running", async () => {
+    const { dir, a } = await setup();
+    for (let i = 0; i < 5; i++) {
+      await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: `# Spec ${i}\n` });
+    }
+    const res = await step(dir, a.id);
+    expect(res.do).toBe("ask");
+    expect(res.text).toContain("revision 5");
   });
 });
 
