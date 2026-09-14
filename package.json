@@ -2,7 +2,7 @@
   "name": "buildsmith",
   "version": "0.0.0",
   "private": true,
-  "description": "Agentic coding pipeline with a local task board, markdown-backed store, and MCP tools.",
+  "description": "A build pipeline for coding agents that they can't skip: spec, critique, review, slices, verification, all derived from markdown on disk.",
   "keywords": [
     "agents",
     "bun",

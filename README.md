@@ -1,94 +1,122 @@
 # Buildsmith
 
-Agentic coding pipeline with a local task board, a markdown-backed store, and MCP tools.
+**A build pipeline for coding agents that they can't skip.**
 
-**Status:** pre-release. Not published to npm yet. APIs and file formats will change.
+Spec → critique → review → approval → architecture → slices → code review → live verification. Every step is a file on disk, the next step is derived from those files, and each agent is told exactly what to do and how to record the result. Your agent runs the loop; the board keeps it honest.
 
-## Layout
+![The Buildsmith board](docs/images/board.png)
+
+## The problem
+
+Coding agents are good at steps and bad at processes. Tell one to "write a spec, get it critiqued, iterate until it holds, then get it reviewed, then build it slice by slice with a review after each" and three things happen:
+
+- **It forgets.** By the fourth step the instructions from the first are out of context. The critique loop runs once instead of until it holds. The review gets skipped because "the code looked fine".
+- **It grades its own homework.** The same agent that wrote the design critiques it, finds it excellent, and moves on.
+- **It carries everything.** The orchestrator holds every spec, every critique, every diff in one context window, and quality degrades as the window fills.
+
+Skills and prompt files help, but they are advice. Nothing stops an agent from deciding it has done enough.
+
+## What Buildsmith does
+
+Buildsmith moves the process out of the agent's head and into a small state machine over markdown files.
+
+- **The board is the state.** A task is a folder under `.buildsmith/` with `spec.md`, `architecture.md`, slices, notes and a verification doc. Status lives in frontmatter. It's git-friendly, diffable and human-readable.
+- **`next()` derives the due step** from those files. A spec in `draft` needs critique. A critic note saying `better-design` sends it back for rewrite. A slice in `review` needs a code review. There is no "skip".
+- **Every role gets a brief.** `buildsmith brief <id>` renders the prompt for whatever is due: the task, the relevant docs, the prior notes, the judgment standard, and the exact commands to record the outcome. Fresh subagents, one per step, each with full context and no memory of the last one.
+- **Roles record their own verdicts** through the CLI. A critic writes `note add --verdict holds` and advances the doc; a coder marks its slice `review` with a commit sha; a reviewer marks it `done` or sends it back. The board only moves when someone with that role says so.
+- **Humans gate what matters.** You approve the spec and the architecture. Everything between is agents pressure-testing each other's work.
+
+## How the loop looks
+
+Your main agent (in Cursor, Claude Code or Codex) runs one command and does what it says:
 
 ```
-apps/web          Local task board (React + Vite + Hono)
-packages/store    Markdown + YAML store (source of truth)
-packages/mcp      MCP server
-packages/cli      Terminal CLI
+buildsmith step <id>
 ```
 
-State in a target repo lives under `.buildsmith/`. The UI, MCP server, and CLI all read and write that folder through `@buildsmith/store`.
+| It returns | Meaning                                                                                       |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| `self`     | A brief for the main agent: interview you for the spec, rule on a critique, ask for approval. |
+| `dispatch` | Agent type, model and a one-line prompt for a fresh subagent. It runs its brief and records.  |
+| `ask`      | A cap was hit (revision 5, three review bounces, two failed verifications, stalled board).    |
+| `done`     | Every step is complete.                                                                       |
+
+The main agent is the planner: it writes the spec and architecture with you, and when a critic proposes a better design it rules **Adopt** or **Reject** per point, with reasons, recorded as a note. The next critic sees those rulings and can't re-raise a settled point without new evidence. Critiquing, reviewing, coding, code-reviewing and testing are always dispatched; the main agent never grades its own work.
+
+<p align="center">
+  <img src="docs/images/task-notes.png" width="560" alt="A task's notes: critic proposes a better design, the planner rules Adopt/Reject per point, a fresh critic holds, the reviewer passes">
+</p>
+
+## Pipeline
 
 ```
-.buildsmith/
-  config.yml                 # board columns, default verify command
-  project.md                 # how to run, check, live-test, and lessons
-  tasks/<uuid>-<slug>/
-    task.md                  # title, column, order, description, criteria
-    spec.md
-    architecture.md
-    verification.md
-    slices/01-<slug>.md
-    notes.md
-    assets/
+spec          write → critique ⟲ → review → approve (you)
+architecture  write → critique ⟲ → review → approve (you)
+slices        add all → for each: code → review ⟲ → done
+verify        write plan → run live → pass | fail (adds a fix slice)
 ```
 
-A task's pipeline stage is derived from those files: spec and architecture move `draft → critiqued → reviewed → approved`, then slices, then a verification pass. `next()` returns the first unmet step.
+`⟲` means the loop repeats until a fresh critic returns `holds` or a fresh reviewer returns `pass`. A rewrite bumps the doc's revision and resets it to `draft`, so nothing that changed goes un-critiqued.
 
-## Requirements
+## Install
 
-- [Bun](https://bun.sh) 1.4.2 or later
-
-## Scripts
+Requires [Bun](https://bun.sh) 1.4.2+. Not on npm yet; link from source:
 
 ```sh
+git clone https://github.com/AidenHadisi/buildsmith && cd buildsmith
 bun install
-bun run dev          # web UI
-bun run check        # lint + format check
-bun test
+cd packages/cli && bun link          # `buildsmith` on PATH
 ```
 
-## Web board
+Then in the repo you want to work on:
 
 ```sh
-bun run dev                    # http://localhost:5173 (Vite proxies to Hono on :3000)
-bun run build && bun run start # production: http://localhost:3000
+buildsmith init                      # creates .buildsmith/
+buildsmith setup cursor              # or claude, codex; installs the plugin
 ```
 
-The server finds `.buildsmith/` by walking up from the cwd; set `BUILDSMITH_ROOT=<dir>` to override.
+Fill in `.buildsmith/project.md` (how to run, check and live-test your project) — every brief includes it.
 
-## CLI
+## Use
 
 ```sh
-cd packages/cli && bun link            # puts `buildsmith` on PATH (~/.bun/bin), pointing at source
-buildsmith --help
-buildsmith task list | jq              # JSON when piped or with --json, text in a TTY
-buildsmith doc write <id> spec --file spec.md   # or pipe the body on stdin
+buildsmith task create --title "Invoice PDF export" \
+  --description "Let an org download a filed invoice as a PDF" \
+  "GET /invoices/:id.pdf returns application/pdf" \
+  "Totals match the invoice record" \
+  "Cross-org ids return 404"
 ```
 
-`<id>` is a task UUID or any unique prefix/suffix of one. Not published to npm yet; `bun link` is the install for now.
-
-## Plugin
-
-An orchestrator skill (`buildsmith`) plus two shim agents (`buildsmith-worker`, `buildsmith-reader`)
-for Cursor, Claude Code, and Codex. Subagents never see the loop; they run `buildsmith brief <id>`
-and follow it.
+Then ask your agent to run the `buildsmith` skill on that task. It will interview you for the spec, run the critique loop, ask you to approve, design the architecture, run that loop, ask again, and build. Watch it on the board:
 
 ```sh
-buildsmith setup [cursor|claude|codex]   # default: all three; --dry-run prints, touches nothing
+bun run build && bun run start       # http://localhost:3000, from the buildsmith checkout
+# BUILDSMITH_ROOT=/path/to/repo to point it at another project
 ```
 
-If `claude` or `codex` is not on `PATH`, setup prints the plugin commands to run by hand.
+Everything is also a CLI command, so you can drive or inspect any step by hand:
 
-Customize prompts with `buildsmith prompt list|show|eject|diff`. A file at
-`.buildsmith/prompts/<action>.md` replaces the built-in template; `<action>.extra.md` fills
-`{{extra}}` without ejecting.
+```sh
+buildsmith next <id>                 # what's due and why
+buildsmith brief <id>                # the prompt the next role would get
+buildsmith note list <id> --target spec
+buildsmith slice list <id>
+```
 
-The loop: the main agent runs `buildsmith step <id>`, which returns `self` (a brief for the main
-agent: write the spec with you, rule on critiques, ask for approval), `dispatch` (agent, model and
-prompt for a fresh subagent that runs `buildsmith brief <id>` and records its result through the
-CLI), `ask` (a cap was hit: revision 5, three revise cycles, two failed verifications, or an
-unchanged board) or `done`. A `better-design` note sends a doc back for rewrite until a critic
-holds. Humans gate only at `approve-spec` and `approve-architecture`.
+`<id>` is a task UUID or any unique prefix of one. Output is JSON when piped, text in a terminal.
 
-Models: templates name a tier (`model: strong|fast`); map tiers to your host's model names in
-`.buildsmith/config.yml`:
+## Customize
+
+**Prompts.** Every step's brief is a markdown template. Eject one into your repo and edit it; `{{extra}}` lets you append without ejecting.
+
+```sh
+buildsmith prompt list               # 14 actions, built-in or repo
+buildsmith prompt eject critique-spec
+# edit .buildsmith/prompts/critique-spec.md, or add critique-spec.extra.md
+buildsmith prompt diff critique-spec
+```
+
+**Models.** Templates name a tier; map tiers to your host's models in `.buildsmith/config.yml`:
 
 ```yaml
 models:
@@ -96,7 +124,21 @@ models:
   fast: gemini-3.5-flash
 ```
 
-An ejected template may also name a concrete model directly.
+**Columns.** Also in `config.yml`. Defaults to `backlog, planning, building, review, done`.
+
+See [docs/how-it-works.md](docs/how-it-works.md) for the state machine, note vocabulary, template slots and file layout.
+
+## Layout
+
+```
+packages/store    Markdown + YAML store, next(), file watcher
+packages/cli      buildsmith CLI, prompt templates, plugin (skill + agents)
+apps/web          Local board (Hono + React), read-only view of .buildsmith/
+```
+
+## Status
+
+Pre-release. The loop is proven end to end with real subagents, and the file formats are stable enough to dogfood. Expect the prompts to keep improving and an npm publish once they settle.
 
 ## License
 
