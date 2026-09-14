@@ -1,4 +1,4 @@
-import { copyFile, lstat, mkdir, rm, symlink } from "node:fs/promises";
+import { copyFile, cp, mkdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { defineCommand } from "citty";
@@ -35,17 +35,15 @@ async function setup(names: string[], dry: boolean): Promise<Step[]> {
   const steps: Step[] = [];
   for (const host of names.map((n) => asEnum("host", n, HOSTS))) {
     if (host === "cursor") {
-      const link = join(home, ".cursor/plugins/local/buildsmith");
+      const dest = join(home, ".cursor/plugins/local/buildsmith");
       if (!dry) {
-        const st = await lstat(link).catch(() => undefined);
-        if (st?.isSymbolicLink()) await rm(link);
-        else if (st) throw new Error(`${link} exists and is not a symlink`);
-        else await mkdir(dirname(link), { recursive: true });
-        await symlink(PLUGIN, link);
+        await mkdir(dirname(dest), { recursive: true });
+        await rm(dest, { recursive: true, force: true });
+        await cp(PLUGIN, dest, { recursive: true });
       }
       steps.push({
         host,
-        action: `symlink ${PLUGIN} -> ${link}`,
+        action: `copy ${PLUGIN} -> ${dest}`,
         status: dry ? "dry-run" : "done",
       });
     } else {

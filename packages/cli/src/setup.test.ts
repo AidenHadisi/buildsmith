@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { lstat, mkdir, mkdtemp, readlink, realpath, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -42,24 +42,28 @@ describe("setup", () => {
     expect(steps.every((s) => s.status === "dry-run")).toBe(true);
   });
 
-  test("setup cursor creates a symlink whose readlink resolves to the plugin dir and is idempotent", async () => {
+  test("setup cursor copies the plugin dir and is idempotent", async () => {
     const home = await tmp();
-    const link = join(home, ".cursor/plugins/local/buildsmith");
+    const dest = join(home, ".cursor/plugins/local/buildsmith");
     for (let i = 0; i < 2; i++) {
       const { code } = await run(["setup", "cursor"], home);
       expect(code).toBe(0);
     }
-    expect((await lstat(link)).isSymbolicLink()).toBe(true);
-    expect(await realpath(await readlink(link))).toBe(await realpath(plugin));
+    expect(await Bun.file(join(dest, ".cursor-plugin/plugin.json")).exists()).toBe(true);
+    expect(await Bun.file(join(dest, "skills/buildsmith/SKILL.md")).text()).toBe(
+      await Bun.file(join(plugin, "skills/buildsmith/SKILL.md")).text(),
+    );
   });
 
-  test("a pre-existing real directory at the link path exits 1 with the error", async () => {
+  test("a pre-existing directory at the install path is replaced", async () => {
     const home = await tmp();
-    const link = join(home, ".cursor/plugins/local/buildsmith");
-    await mkdir(link, { recursive: true });
-    const { stderr, code } = await run(["setup", "cursor"], home);
-    expect(code).toBe(1);
-    expect(stderr).toContain(`${link} exists and is not a symlink`);
+    const dest = join(home, ".cursor/plugins/local/buildsmith");
+    await mkdir(dest, { recursive: true });
+    await Bun.write(join(dest, "stale.txt"), "old");
+    const { code } = await run(["setup", "cursor"], home);
+    expect(code).toBe(0);
+    expect(await Bun.file(join(dest, "stale.txt")).exists()).toBe(false);
+    expect(await Bun.file(join(dest, ".cursor-plugin/plugin.json")).exists()).toBe(true);
   });
 
   test("setup claude statuses printed, exit 0", async () => {
