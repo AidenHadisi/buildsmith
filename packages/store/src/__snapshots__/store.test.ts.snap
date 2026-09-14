@@ -6,16 +6,14 @@ id: <uuid>
 title: Ship store
 column: planning
 order: a0
+criteria:
+  - create a task
+  - move it
 createdAt: <iso>
 updatedAt: <iso>
 branch: feat/store
 ---
 Updated.
-
-## Acceptance criteria
-
-- create a task
-- move it
 "
 `;
 
@@ -32,13 +30,11 @@ exports[`docs slices notes project assets pipeline docs, slices, notes, project,
 "---
 title: Codec
 status: done
+criteria:
+  - round-trip YAML
 commit: abc123
 ---
 Parse frontmatter.
-
-## Criteria
-
-- round-trip YAML
 "
 `;
 

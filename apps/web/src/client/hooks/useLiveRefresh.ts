@@ -12,12 +12,13 @@ export function useLiveRefresh() {
     let watchdog: ReturnType<typeof setTimeout>;
     const connect = () => {
       source = new EventSource("/events");
+      const expire = () => {
+        source.close();
+        connect();
+      };
       const beat = () => {
         clearTimeout(watchdog);
-        watchdog = setTimeout(() => {
-          source.close();
-          connect();
-        }, WATCHDOG_MS);
+        watchdog = setTimeout(expire, WATCHDOG_MS);
       };
       const refresh = () => {
         void queryClient.invalidateQueries();
@@ -26,7 +27,7 @@ export function useLiveRefresh() {
       source.addEventListener("open", refresh);
       source.addEventListener("change", refresh);
       source.addEventListener("ping", beat);
-      beat();
+      watchdog = setTimeout(expire, WATCHDOG_MS);
     };
     connect();
     return () => {

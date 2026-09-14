@@ -1,14 +1,15 @@
 import { generateKeyBetween } from "fractional-indexing";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import type { z } from "zod";
+import { StoreError } from "./errors.ts";
 import {
   createExclusive,
   findRoot,
-  joinFrontmatter,
+  listDir,
   parseYaml,
   patchRecord,
   readOptional,
+  readOptionalRecord,
   readRecord,
   splitSections,
   stringifyRecord,
@@ -19,54 +20,25 @@ import {
 import {
   DEFAULT_COLUMNS,
   configSchema,
+  docSchema,
+  docStatusSchema,
   noteEntrySchema,
-  pipelineDocSchema,
   sliceSchema,
   taskSchema,
-  verificationSchema,
   type Config,
+  type DocFrontmatter,
   type DocKind,
   type DocStatus,
   type NoteEntry,
-  type PipelineDocFrontmatter,
   type SliceFrontmatter,
   type SliceStatus,
   type TaskFrontmatter,
-  type VerificationFrontmatter,
   type VerificationResult,
 } from "./schema.ts";
 
-const DOC_STATUS_RANK: Record<DocStatus, number> = {
-  draft: 0,
-  critiqued: 1,
-  reviewed: 2,
-  approved: 3,
-};
-
-export type TaskRecord = TaskFrontmatter & {
-  description: string;
-  criteria: string[];
-  dir: string;
-};
-
-export type SliceRecord = SliceFrontmatter & {
-  n: number;
-  goal: string;
-  criteria: string[];
-  file: string;
-};
-
-export type PipelineDoc = PipelineDocFrontmatter & {
-  kind: "spec" | "architecture";
-  body: string;
-};
-
-export type VerificationDoc = VerificationFrontmatter & {
-  kind: "verification";
-  body: string;
-};
-
-export type TaskDoc = PipelineDoc | VerificationDoc;
+export type TaskRecord = TaskFrontmatter & { description: string; dir: string };
+export type SliceRecord = SliceFrontmatter & { n: number; goal: string; file: string };
+export type TaskDoc = DocFrontmatter & { kind: DocKind; body: string };
 
 export type Store = Awaited<ReturnType<typeof openStore>>;
 
@@ -85,8 +57,8 @@ export async function openStore(cwd: string) {
       return id === ref || id.startsWith(ref) || id.endsWith(ref);
     });
     const [match] = matches;
-    if (!match) throw new Error(`task ${ref} not found`);
-    if (matches.length > 1) throw new Error(`ambiguous task id ${ref}`);
+    if (!match) throw new StoreError("not_found", `task ${ref} not found`);
+    if (matches.length > 1) throw new StoreError("ambiguous_id", `ambiguous task id ${ref}`);
     return join(root, "tasks", match);
   };
 
@@ -96,33 +68,54 @@ export async function openStore(cwd: string) {
       const tasksDir = join(root, "tasks");
       return withLock(tasksDir, async () => {
         const column = config.columns[0] ?? DEFAULT_COLUMNS[0];
-        const existing = await listTasks(root, config);
+        const existing = await tasks.list();
         const last = existing.findLast((t) => t.column === column);
         const now = new Date().toISOString();
-        const data: TaskFrontmatter = {
+        const data = {
           id: Bun.randomUUIDv7(),
           title,
           column,
           order: generateKeyBetween(last?.order ?? null, null),
+          ...(criteria.length ? { criteria } : {}),
           createdAt: now,
           updatedAt: now,
         };
         const dir = join(tasksDir, `${data.id}-${slugify(title)}`);
-        const body = bodyWithSection(description, "Acceptance criteria", criteria);
         await mkdir(join(dir, "assets"), { recursive: true });
-        await createExclusive(join(dir, "task.md"), stringifyRecord(data, body));
-        return toTask(dir, data, body);
+        await createExclusive(
+          join(dir, "task.md"),
+          stringifyRecord(data, `${description.trim()}\n`),
+        );
+        return { ...data, criteria, description: description.trim(), dir };
       });
     },
 
     async get(id: string) {
       const dir = await taskDir(id);
       const rec = await readRecord(join(dir, "task.md"), taskSchema);
-      return toTask(dir, rec.data, rec.body);
+      return { ...rec.data, description: rec.body.trim(), dir };
     },
 
     async list() {
-      return listTasks(root, config);
+      const tasksDir = join(root, "tasks");
+      const listed: TaskRecord[] = [];
+      for (const name of await listDir(tasksDir)) {
+        if (name.startsWith(".")) continue;
+        const dir = join(tasksDir, name);
+        const rec = await readRecord(join(dir, "task.md"), taskSchema);
+        listed.push({ ...rec.data, description: rec.body.trim(), dir });
+      }
+      const rank = (column: string) => {
+        const i = config.columns.indexOf(column);
+        return i === -1 ? config.columns.length : i;
+      };
+      listed.sort(
+        (a, b) =>
+          rank(a.column) - rank(b.column) ||
+          a.order.localeCompare(b.order) ||
+          a.id.localeCompare(b.id),
+      );
+      return listed;
     },
 
     async move(id: string, column: string, pos: { before?: string; after?: string } = {}) {
@@ -133,28 +126,22 @@ export async function openStore(cwd: string) {
       const afterDir = pos.after ? await taskDir(pos.after) : undefined;
       const beforeDir = pos.before ? await taskDir(pos.before) : undefined;
       return withLock(dir, async () => {
-        const all = await listTasks(root, config);
-        const others = all
+        const others = (await tasks.list())
           .filter((t) => t.dir !== dir && t.column === column)
           .sort((a, b) => a.order.localeCompare(b.order) || a.id.localeCompare(b.id));
-        const after = others.find((t) => t.dir === afterDir);
-        const before = others.find((t) => t.dir === beforeDir);
-        if (afterDir && !after) {
-          throw new Error(`task ${pos.after} not found in ${column}`);
+        const anchorDir = beforeDir ?? afterDir;
+        const i = anchorDir ? others.findIndex((t) => t.dir === anchorDir) : others.length;
+        if (anchorDir && i === -1) {
+          throw new Error(`task ${pos.before ?? pos.after} not found in ${column}`);
         }
-        if (beforeDir && !before) {
-          throw new Error(`task ${pos.before} not found in ${column}`);
-        }
-        const indexOf = (task: TaskRecord) => others.findIndex((t) => t.dir === task.dir);
-        const lo = after ?? (before ? others[indexOf(before) - 1] : others.at(-1));
-        const hi = before ?? (after ? others[indexOf(after) + 1] : undefined);
-        const order = generateKeyBetween(lo?.order ?? null, hi?.order ?? null);
+        const at = pos.before ? i : i + (pos.after ? 1 : 0);
+        const order = generateKeyBetween(others[at - 1]?.order ?? null, others[at]?.order ?? null);
         const rec = await patchRecord(join(dir, "task.md"), taskSchema, (doc) => {
           doc.set("column", column);
           doc.set("order", order);
           doc.set("updatedAt", new Date().toISOString());
         });
-        return toTask(dir, rec.data, rec.body);
+        return { ...rec.data, description: rec.body.trim(), dir };
       });
     },
 
@@ -169,25 +156,20 @@ export async function openStore(cwd: string) {
       },
     ) {
       const dir = await taskDir(id);
-      const path = join(dir, "task.md");
       return withLock(dir, async () => {
-        const rec = await readRecord(path, taskSchema);
-        if (patch.title !== undefined) rec.doc.set("title", patch.title);
-        if (patch.branch !== undefined) rec.doc.set("branch", patch.branch);
-        if (patch.pr !== undefined) rec.doc.set("pr", patch.pr);
-        rec.doc.set("updatedAt", new Date().toISOString());
-        const data = taskSchema.parse(rec.doc.toJS() ?? {});
-        const { preamble, bullets } = parseBody(rec.body, "Acceptance criteria");
-        const body = bodyWithSection(
-          patch.description ?? preamble,
-          "Acceptance criteria",
-          patch.criteria ?? bullets,
+        const rec = await patchRecord(
+          join(dir, "task.md"),
+          taskSchema,
+          (doc) => {
+            if (patch.title !== undefined) doc.set("title", patch.title);
+            if (patch.branch !== undefined) doc.set("branch", patch.branch);
+            if (patch.pr !== undefined) doc.set("pr", patch.pr);
+            if (patch.criteria !== undefined) doc.set("criteria", patch.criteria);
+            doc.set("updatedAt", new Date().toISOString());
+          },
+          patch.description === undefined ? undefined : `${patch.description.trim()}\n`,
         );
-        await writeAtomic(
-          path,
-          joinFrontmatter(rec.doc.toString({ lineWidth: 0 }), body, rec.eol, rec.bom),
-        );
-        return toTask(dir, data, body);
+        return { ...rec.data, description: rec.body.trim(), dir };
       });
     },
   };
@@ -197,31 +179,23 @@ export async function openStore(cwd: string) {
       const dir = await taskDir(taskId);
       return withLock(dir, async () => {
         const path = join(dir, `${kind}.md`);
-        if (kind === "verification") {
-          const prev = await readRecordOrNull(path, verificationSchema);
-          const data: VerificationFrontmatter = prev?.data.result
-            ? { result: prev.data.result }
-            : {};
-          await writeAtomic(path, stringifyRecord(data, body));
-          return { kind, ...data, body };
-        }
-        const prev = await readRecordOrNull(path, pipelineDocSchema);
-        const data: PipelineDocFrontmatter = prev
-          ? { status: "draft", revision: prev.data.revision + 1 }
-          : { status: "draft", revision: 1 };
+        const prev = await readOptionalRecord(path, docSchema);
+        const data =
+          kind === "verification"
+            ? prev?.data.result
+              ? { result: prev.data.result }
+              : {}
+            : {
+                status: "draft" as const,
+                revision: (prev?.data.revision ?? 0) + 1,
+              };
         await writeAtomic(path, stringifyRecord(data, body));
         return { kind, ...data, body };
       });
     },
 
     async read(taskId: string, kind: DocKind) {
-      const dir = await taskDir(taskId);
-      const path = join(dir, `${kind}.md`);
-      if (kind === "verification") {
-        const rec = await readRecordOrNull(path, verificationSchema);
-        return rec && { kind, ...rec.data, body: rec.body.trimStart() };
-      }
-      const rec = await readRecordOrNull(path, pipelineDocSchema);
+      const rec = await readOptionalRecord(join(await taskDir(taskId), `${kind}.md`), docSchema);
       return rec && { kind, ...rec.data, body: rec.body.trimStart() };
     },
 
@@ -229,11 +203,15 @@ export async function openStore(cwd: string) {
       const dir = await taskDir(taskId);
       return withLock(dir, async () => {
         const path = join(dir, `${kind}.md`);
-        const rec = await readRecord(path, pipelineDocSchema);
-        if (DOC_STATUS_RANK[status] <= DOC_STATUS_RANK[rec.data.status]) {
-          throw new Error(`cannot move ${kind} status from ${rec.data.status} to ${status}`);
+        const rec = await readRecord(path, docSchema);
+        const current = rec.data.status;
+        if (
+          current &&
+          docStatusSchema.options.indexOf(status) <= docStatusSchema.options.indexOf(current)
+        ) {
+          throw new Error(`cannot move ${kind} status from ${current} to ${status}`);
         }
-        const patched = await patchRecord(path, pipelineDocSchema, (doc) => {
+        const patched = await patchRecord(path, docSchema, (doc) => {
           doc.set("status", status);
         });
         return { kind, ...patched.data, body: patched.body.trimStart() };
@@ -243,11 +221,7 @@ export async function openStore(cwd: string) {
     async setResult(taskId: string, kind: "verification", result: VerificationResult) {
       const dir = await taskDir(taskId);
       return withLock(dir, async () => {
-        const path = join(dir, "verification.md");
-        if ((await readOptional(path)) === null) {
-          throw new Error(`verification.md missing for task ${taskId}`);
-        }
-        const patched = await patchRecord(path, verificationSchema, (doc) => {
+        const patched = await patchRecord(join(dir, "verification.md"), docSchema, (doc) => {
           doc.set("result", result);
         });
         return { kind, ...patched.data, body: patched.body.trimStart() };
@@ -265,10 +239,13 @@ export async function openStore(cwd: string) {
         const existing = await listSlices(dir);
         const n = (existing.at(-1)?.n ?? 0) + 1;
         const file = join(slicesDir, `${String(n).padStart(2, "0")}-${slugify(title)}.md`);
-        const data: SliceFrontmatter = { title, status: "todo" };
-        const body = bodyWithSection(goal, "Criteria", criteria);
-        await createExclusive(file, stringifyRecord(data, body));
-        return toSlice(file, n, data, body);
+        const data = {
+          title,
+          status: "todo" as const,
+          ...(criteria.length ? { criteria } : {}),
+        };
+        await createExclusive(file, stringifyRecord(data, `${goal.trim()}\n`));
+        return { ...data, criteria, n, goal: goal.trim(), file };
       });
     },
 
@@ -285,7 +262,7 @@ export async function openStore(cwd: string) {
           if (patch.status !== undefined) doc.set("status", patch.status);
           if (patch.commit !== undefined) doc.set("commit", patch.commit);
         });
-        return toSlice(slice.file, n, rec.data, rec.body);
+        return { ...rec.data, n, goal: rec.body.trim(), file: slice.file };
       });
     },
   };
@@ -318,8 +295,7 @@ export async function openStore(cwd: string) {
     },
 
     async list(taskId: string, target?: string) {
-      const dir = await taskDir(taskId);
-      const raw = await readOptional(join(dir, "notes.md"));
+      const raw = await readOptional(join(await taskDir(taskId), "notes.md"));
       if (raw === null) return [];
       const entries = parseNotes(raw);
       return target ? entries.filter((e) => e.target === target) : entries;
@@ -337,20 +313,19 @@ export async function openStore(cwd: string) {
       await writeAtomic(projectPath, body.endsWith("\n") ? body : `${body}\n`);
     },
     async addLesson(text: string) {
-      const raw = await readOptional(projectPath);
-      if (raw === null) throw new Error(`missing ${projectPath}`);
-      const { preamble, sections } = splitSections(raw);
-      const idx = sections.findIndex((s) => s.heading === "Lessons");
+      const raw = await project.read();
       const lesson = `- ${text.trim()}`;
-      if (idx === -1) {
+      const { preamble, sections } = splitSections(raw);
+      const lessons = sections.find((s) => s.heading === "Lessons");
+      if (!lessons) {
         await writeAtomic(projectPath, `${raw.replace(/\s*$/, "")}\n\n## Lessons\n\n${lesson}\n`);
         return;
       }
-      const lessons = sections[idx];
-      if (!lessons) return;
       lessons.body = lessons.body ? `${lessons.body}\n${lesson}` : lesson;
-      const chunks = sections.map((s) => `## ${s.heading}\n\n${s.body.trim()}\n`);
-      if (preamble.trim()) chunks.unshift(preamble.trimEnd());
+      const chunks = [
+        ...(preamble.trim() ? [preamble.trimEnd()] : []),
+        ...sections.map((s) => `## ${s.heading}\n\n${s.body.trim()}\n`),
+      ];
       await writeAtomic(projectPath, chunks.join("\n").replace(/\n*$/, "\n"));
     },
   };
@@ -382,91 +357,17 @@ async function loadConfig(root: string): Promise<Config> {
   }
 }
 
-async function listDir(dir: string): Promise<string[]> {
-  try {
-    return await readdir(dir);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw err;
-  }
-}
-
-async function readRecordOrNull<T>(path: string, schema: z.ZodType<T>) {
-  try {
-    return await readRecord(path, schema);
-  } catch (err) {
-    if (err instanceof Error && err.message.startsWith("missing file")) return null;
-    throw err;
-  }
-}
-
-async function listTasks(root: string, config: Config): Promise<TaskRecord[]> {
-  const tasksDir = join(root, "tasks");
-  const tasks: TaskRecord[] = [];
-  for (const name of await listDir(tasksDir)) {
-    if (name.startsWith(".")) continue;
-    const dir = join(tasksDir, name);
-    const rec = await readRecord(join(dir, "task.md"), taskSchema);
-    tasks.push(toTask(dir, rec.data, rec.body));
-  }
-  const colIndex = (column: string) => {
-    const i = config.columns.indexOf(column);
-    return i === -1 ? config.columns.length : i;
-  };
-  tasks.sort(
-    (a, b) =>
-      colIndex(a.column) - colIndex(b.column) ||
-      a.order.localeCompare(b.order) ||
-      a.id.localeCompare(b.id),
-  );
-  return tasks;
-}
-
 async function listSlices(taskDirPath: string): Promise<SliceRecord[]> {
   const slicesDir = join(taskDirPath, "slices");
   const slices: SliceRecord[] = [];
   for (const name of await listDir(slicesDir)) {
-    const match = name.match(/^(\d+)-.+\.md$/);
-    if (!match?.[1]) continue;
+    const n = Number(name.match(/^(\d+)-.+\.md$/)?.[1]);
+    if (!n) continue;
     const file = join(slicesDir, name);
     const rec = await readRecord(file, sliceSchema);
-    slices.push(toSlice(file, Number(match[1]), rec.data, rec.body));
+    slices.push({ ...rec.data, n, goal: rec.body.trim(), file });
   }
-  slices.sort((a, b) => a.n - b.n);
-  return slices;
-}
-
-function toTask(dir: string, data: TaskFrontmatter, body: string): TaskRecord {
-  const { preamble, bullets } = parseBody(body, "Acceptance criteria");
-  return { ...data, description: preamble, criteria: bullets, dir };
-}
-
-function toSlice(file: string, n: number, data: SliceFrontmatter, body: string): SliceRecord {
-  const { preamble, bullets } = parseBody(body, "Criteria");
-  return { ...data, n, goal: preamble, criteria: bullets, file };
-}
-
-function parseBody(body: string, heading: string): { preamble: string; bullets: string[] } {
-  const { preamble, sections } = splitSections(body);
-  const section = sections.find((s) => s.heading === heading);
-  return { preamble, bullets: parseBullets(section?.body ?? "") };
-}
-
-function parseBullets(md: string): string[] {
-  const out: string[] = [];
-  for (const line of md.split(/\r?\n/)) {
-    const match = line.match(/^\s*[-*]\s+(?:\[.\]\s+)?(.*)$/);
-    const text = match?.[1]?.trim();
-    if (text) out.push(text);
-  }
-  return out;
-}
-
-function bodyWithSection(preamble: string, heading: string, bullets: string[]): string {
-  const text = preamble.trim();
-  if (bullets.length === 0) return text ? `${text}\n` : "";
-  const list = bullets.map((b) => `- ${b}`).join("\n");
-  return `${text}\n\n## ${heading}\n\n${list}\n`;
+  return slices.sort((a, b) => a.n - b.n);
 }
 
 function slugify(title: string, max = 48): string {

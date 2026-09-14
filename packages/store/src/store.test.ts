@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { StoreError } from "./errors.ts";
 import { initRoot } from "./files.ts";
 import { next } from "./next.ts";
 import { openStore } from "./store.ts";
@@ -71,8 +72,16 @@ describe("tasks", () => {
     await mkdir(join(store.root, "tasks", ".lock"));
     await writeFile(join(store.root, "tasks", ".DS_Store"), "");
     const shared = a.id.slice(0, 8); // uuidv7 timestamp prefix common to both tasks
-    expect(store.tasks.get(shared)).rejects.toThrow(`ambiguous task id ${shared}`);
-    expect(store.tasks.get("nope")).rejects.toThrow("task nope not found");
+    await expect(store.tasks.get(shared)).rejects.toBeInstanceOf(StoreError);
+    await expect(store.tasks.get(shared)).rejects.toMatchObject({
+      code: "ambiguous_id",
+      message: `ambiguous task id ${shared}`,
+    });
+    await expect(store.tasks.get("nope")).rejects.toBeInstanceOf(StoreError);
+    await expect(store.tasks.get("nope")).rejects.toMatchObject({
+      code: "not_found",
+      message: "task nope not found",
+    });
     expect(store.tasks.get(".lock")).rejects.toThrow("task .lock not found");
     expect(store.tasks.get("Store")).rejects.toThrow("task Store not found");
   });

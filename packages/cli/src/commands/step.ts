@@ -65,7 +65,7 @@ async function capHit(store: Store, taskId: string, action: string): Promise<str
   if (action.endsWith("-spec") || action.endsWith("-architecture")) {
     const kind = action.endsWith("-spec") ? "spec" : "architecture";
     const doc = await store.docs.read(taskId, kind);
-    if (doc && "revision" in doc && doc.revision >= 5) {
+    if (doc?.revision != null && doc.revision >= 5) {
       return `${kind} has reached revision ${doc.revision}; discuss with the user whether to approve it as-is or narrow the task.`;
     }
   }
