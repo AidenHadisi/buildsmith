@@ -9,6 +9,7 @@ import { api, type TaskDetail } from "../api.ts";
 import { ErrorPanel } from "./ErrorPanel.tsx";
 import { Markdown } from "./Markdown.tsx";
 import { StageBadge } from "./StageBadge.tsx";
+import { label } from "../label.ts";
 import { useTaskParam } from "../hooks/useTaskParam.ts";
 
 type Doc = TaskDetail["spec"] | TaskDetail["verification"];
@@ -167,7 +168,7 @@ function Overview({ data: { task, next } }: { data: TaskDetail }) {
     <div className="space-y-4">
       <Section title="Next">
         <p className="text-sm">
-          <span className="font-mono">{next.action}</span> — {next.reason}
+          <span className="font-medium">{label(next.action)}</span> — {next.reason}
         </p>
       </Section>
       {next.blocked?.length ? (
@@ -191,11 +192,11 @@ function DocView({ doc, taskId, empty }: { doc: Doc; taskId: string; empty: stri
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {doc.kind === "verification" ? (
-          <Badge variant="outline">{doc.result ?? "pending"}</Badge>
+          <Badge variant="outline">{label(doc.result ?? "pending")}</Badge>
         ) : (
           <>
-            <Badge variant="secondary">{doc.status}</Badge>
-            <Badge variant="outline">revision {doc.revision}</Badge>
+            <Badge variant="secondary">{label(doc.status ?? "draft")}</Badge>
+            <Badge variant="outline">Revision {doc.revision}</Badge>
           </>
         )}
       </div>
@@ -213,7 +214,7 @@ function SliceList({ slices }: { slices: Slice[] }) {
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground">#{slice.n}</span>
             <span className="text-sm font-medium">{slice.title}</span>
-            <Badge variant="secondary">{slice.status}</Badge>
+            <Badge variant="secondary">{label(slice.status)}</Badge>
             {slice.commit && (
               <span className="font-mono text-xs text-muted-foreground">{slice.commit}</span>
             )}
@@ -257,10 +258,10 @@ function NoteList({ notes, taskId }: { notes: Note[]; taskId: string }) {
           <div className="sticky top-4 flex flex-col items-start gap-1.5 self-start pr-4">
             {note.verdict && (
               <Badge className={verdictStyles[note.verdict] ?? "bg-secondary"}>
-                {note.verdict}
+                {label(note.verdict)}
               </Badge>
             )}
-            <p className="text-sm font-medium">{note.author}</p>
+            <p className="text-sm font-medium">{label(note.author)}</p>
             <p className="font-mono text-xs text-muted-foreground">{note.target}</p>
             <time dateTime={note.at} className="text-xs text-muted-foreground/70">
               {noteTime.format(new Date(note.at))}

@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge.tsx";
 import type { BoardTask } from "../api.ts";
 import { StageBadge } from "./StageBadge.tsx";
+import { label } from "../label.ts";
 import { useTaskParam } from "../hooks/useTaskParam.ts";
 
 export function TaskCard({ task }: { task: BoardTask }) {
@@ -14,13 +15,13 @@ export function TaskCard({ task }: { task: BoardTask }) {
     >
       <p className="text-sm font-medium">{task.title}</p>
       {task.next.action !== "none" && (
-        <p className="font-mono text-xs text-muted-foreground">{task.next.action}</p>
+        <p className="text-xs text-muted-foreground">{label(task.next.action)}</p>
       )}
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs text-muted-foreground">{task.id.slice(-6)}</span>
         <span className="flex items-center gap-1">
           <StageBadge stage={task.next.stage} />
-          {blocked ? <Badge variant="destructive">blocked · {blocked}</Badge> : null}
+          {blocked ? <Badge variant="destructive">Blocked · {blocked}</Badge> : null}
         </span>
       </div>
     </button>

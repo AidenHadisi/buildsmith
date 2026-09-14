@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge.tsx";
 import type { BoardTask } from "../api.ts";
+import { label } from "../label.ts";
 
 type Stage = BoardTask["next"]["stage"];
 
@@ -13,5 +14,5 @@ const styles: Record<Stage, string> = {
 };
 
 export function StageBadge({ stage }: { stage: Stage }) {
-  return <Badge className={styles[stage]}>{stage}</Badge>;
+  return <Badge className={styles[stage]}>{label(stage)}</Badge>;
 }
