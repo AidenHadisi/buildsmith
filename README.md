@@ -56,12 +56,13 @@ The server finds `.buildsmith/` by walking up from the cwd; set `BUILDSMITH_ROOT
 ## CLI
 
 ```sh
-bunx buildsmith --help                 # bun install links node_modules/.bin/buildsmith
-bunx buildsmith task list | jq         # JSON when piped or with --json, text in a TTY
-bunx buildsmith doc write <id> spec --file spec.md   # or pipe the body on stdin
+cd packages/cli && bun link            # puts `buildsmith` on PATH (~/.bun/bin), pointing at source
+buildsmith --help
+buildsmith task list | jq              # JSON when piped or with --json, text in a TTY
+buildsmith doc write <id> spec --file spec.md   # or pipe the body on stdin
 ```
 
-`<id>` is a task UUID or any unique prefix/suffix of one. Outside the monorepo, run `bun packages/cli/src/main.ts`.
+`<id>` is a task UUID or any unique prefix/suffix of one. Not published to npm yet; `bun link` is the install for now.
 
 ## Plugin
 
@@ -70,7 +71,7 @@ for Cursor, Claude Code, and Codex. Subagents never see the loop; they run `buil
 and follow it.
 
 ```sh
-bunx buildsmith setup [cursor|claude|codex]   # default: all three; --dry-run prints, touches nothing
+buildsmith setup [cursor|claude|codex]   # default: all three; --dry-run prints, touches nothing
 ```
 
 If `claude` or `codex` is not on `PATH`, setup prints the plugin commands to run by hand.
