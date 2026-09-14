@@ -207,11 +207,7 @@ export async function openStore(cwd: string) {
         }
         const prev = await readRecordOrNull(path, pipelineDocSchema);
         const data: PipelineDocFrontmatter = prev
-          ? {
-              status: prev.data.status === "approved" ? "draft" : prev.data.status,
-              revision:
-                prev.data.status === "approved" ? prev.data.revision + 1 : prev.data.revision,
-            }
+          ? { status: "draft", revision: prev.data.revision + 1 }
           : { status: "draft", revision: 1 };
         await writeAtomic(path, stringifyRecord(data, body));
         return { kind, ...data, body };

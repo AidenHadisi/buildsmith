@@ -42,6 +42,15 @@ export async function next(store: Store, taskId: string): Promise<NextAction> {
     };
   }
 
+  const reviewing = slices.find((s) => s.status === "review");
+  if (reviewing) {
+    return {
+      stage: "building",
+      action: "review-slice",
+      reason: `slice ${reviewing.n} is in review`,
+    };
+  }
+
   const unfinished = slices.find((s) => s.status !== "done");
   if (unfinished) {
     return {
