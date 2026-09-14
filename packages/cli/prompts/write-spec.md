@@ -31,8 +31,15 @@ Branch: `{{branch}}` · Spec revision: {{revision}}
 ## Your job
 
 Write the spec: what we are building and what done looks like, concrete enough that two
-implementers would build the same thing. If a spec already exists, the newest note above says
-why it was sent back — rewrite it to resolve every point in that note; do not append a reply.
+implementers would build the same thing. You hold the user's intent — interview them first when
+the task leaves room for interpretation; do not invent product decisions.
+
+If a spec already exists, the newest note above says why it was sent back. Rule on every point in
+it: **Adopt** when it makes the spec tighter or more correct without losing something the user
+asked for; **Reject** with a reason when it does. When a point cuts or changes something the user
+explicitly wanted, ask the user before ruling. Rewrite the spec for the adopted points; do not
+append a reply. Points already rejected in earlier notes stay rejected unless the critic brought new
+evidence.
 
 Sections, in order:
 
@@ -57,11 +64,13 @@ Write the spec to the board (the body is read from stdin):
 EOF
 ```
 
-If this is a rewrite (revision > 0), record what changed so the critique loop resumes:
+If this is a rewrite (revision > 0), record your rulings so the critique loop resumes and the
+next critic sees what was decided:
 
 ```sh
 {{cli}} note add {{id}} --author planner --target spec --verdict revised <<'EOF'
-<what changed and which note points it resolves>
+- <point> · Adopt · <what changed>
+- <point> · Reject · <why>
 EOF
 ```
 

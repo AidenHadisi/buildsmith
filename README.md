@@ -79,9 +79,11 @@ Customize prompts with `buildsmith prompt list|show|eject|diff`. A file at
 `.buildsmith/prompts/<action>.md` replaces the built-in template; `<action>.extra.md` fills
 `{{extra}}` without ejecting.
 
-The loop: `next` names the due action; `brief` renders that action's template; a generic subagent
-follows the brief and records the result through the CLI; the skill repeats. Humans gate only at
-`approve-spec` and `approve-architecture`.
+The loop: `next` names the due action; `brief` renders that action's template. The main agent
+writes the spec and architecture with you and rules on critiques (Adopt/Reject, recorded as notes);
+every other role runs as a fresh subagent that follows its brief and records the result through
+the CLI. A `better-design` note sends a doc back for rewrite until a critic holds. Humans gate only
+at `approve-spec` and `approve-architecture`.
 
 ## License
 

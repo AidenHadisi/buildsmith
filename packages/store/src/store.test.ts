@@ -201,7 +201,38 @@ describe("next", () => {
     expect((await next(store, task.id)).action).toBe("write-spec");
     await store.docs.write(task.id, "spec", "spec");
     expect((await next(store, task.id)).action).toBe("critique-spec");
+    await store.notes.add(task.id, {
+      author: "critic",
+      target: "spec",
+      verdict: "better-design",
+      body: "…",
+    });
+    expect(await next(store, task.id)).toMatchObject({
+      action: "write-spec",
+      reason: expect.stringContaining("sent back"),
+    });
+    await store.notes.add(task.id, {
+      author: "planner",
+      target: "spec",
+      verdict: "revised",
+      body: "…",
+    });
+    expect((await next(store, task.id)).action).toBe("critique-spec");
     await store.docs.setStatus(task.id, "spec", "critiqued");
+    expect((await next(store, task.id)).action).toBe("review-spec");
+    await store.notes.add(task.id, {
+      author: "reviewer",
+      target: "spec",
+      verdict: "needs-changes",
+      body: "…",
+    });
+    expect((await next(store, task.id)).action).toBe("write-spec");
+    await store.notes.add(task.id, {
+      author: "planner",
+      target: "spec",
+      verdict: "revised",
+      body: "…",
+    });
     expect((await next(store, task.id)).action).toBe("review-spec");
     await store.docs.setStatus(task.id, "spec", "reviewed");
     expect((await next(store, task.id)).action).toBe("approve-spec");

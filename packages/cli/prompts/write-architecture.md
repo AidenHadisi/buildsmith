@@ -31,8 +31,13 @@ Branch: `{{branch}}` · Architecture revision: {{revision}}
 ## Your job
 
 Read the approved spec first: `{{cli}} doc read {{id}} spec`. Then design the shape that meets
-it. If an architecture already exists, the newest note above says why it was sent back —
-rewrite it to resolve every point in that note; do not append a reply.
+it.
+
+If an architecture already exists, the newest note above says why it was sent back. Rule on every
+point in it: **Adopt** when it is simpler, fits the repo better, or removes a real risk while still
+meeting the spec; **Reject** with a reason when it does not. Rewrite the architecture for the
+adopted points; do not append a reply. Points already rejected in earlier notes stay rejected
+unless the critic brought new evidence.
 
 Decompose before choosing shapes:
 
@@ -58,11 +63,13 @@ Write the architecture to the board (the body is read from stdin):
 EOF
 ```
 
-If this is a rewrite (revision > 0), record what changed so the critique loop resumes:
+If this is a rewrite (revision > 0), record your rulings so the critique loop resumes and the
+next critic sees what was decided:
 
 ```sh
 {{cli}} note add {{id}} --author planner --target architecture --verdict revised <<'EOF'
-<what changed and which note points it resolves>
+- <point> · Adopt · <what changed>
+- <point> · Reject · <why>
 EOF
 ```
 
