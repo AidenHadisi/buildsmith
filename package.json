@@ -1,6 +1,6 @@
 {
   "name": "buildsmith",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A lightweight agentic pipeline, enforced by a deterministic state machine over markdown on disk.",
   "keywords": [
     "agents",
