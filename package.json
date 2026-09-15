@@ -23,7 +23,7 @@
     "url": "git+https://github.com/AidenHadisi/buildsmith.git"
   },
   "bin": {
-    "buildsmith": "./src/main.ts"
+    "buildsmith": "src/main.ts"
   },
   "files": [
     "board/src/server/app.ts",
