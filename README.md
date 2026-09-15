@@ -5,12 +5,13 @@
 <h1 align="center">Buildsmith</h1>
 
 <p align="center">
-  <strong>A lightweight agentic coding pipeline, enforced by a deterministic state machine over markdown on disk.</strong>
+  <strong>A lightweight agentic coding pipeline, enforced by a deterministic state machine over markdown on disk.</strong><br>
+  Git-friendly, diffable, human-readable. Never edited by hand; the CLI is the only writer.
 </p>
 
 Coding agents are good at steps and bad at processes. They forget the review loop, skip the gate, and grade their own homework. Skills are advice; nothing stops an agent from deciding it has done enough.
 
-Buildsmith moves the process out of the model's head and onto disk. Every task is a folder of markdown: git-friendly, diffable, human-readable. A small CLI is the only writer, and it reads those files to return exactly one next step. Agents execute it. They do not choose it.
+Buildsmith moves the process out of the model's head and onto disk. Every task is a folder of markdown. A small CLI reads those files and returns exactly one next step. Agents execute it. They do not choose it.
 
 ![The Buildsmith board](images/board.png)
 
