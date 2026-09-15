@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { initRoot, openStore } from "@buildsmith/store";
+import { Store } from "@buildsmith/store";
 import { json, print } from "./io.ts";
 
 const main = join(import.meta.dir, "main.ts");
@@ -12,9 +12,10 @@ afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
-type Opts = { cwd: string; stdin?: string; env?: Record<string, string> };
-
-function spawn(args: string[], opts: Opts) {
+function spawn(
+  args: string[],
+  opts: { cwd: string; stdin?: string; env?: Record<string, string> },
+) {
   return Bun.spawn(["bun", main, ...args], {
     cwd: opts.cwd,
     stdin: opts.stdin === undefined ? "ignore" : new Blob([opts.stdin]),
@@ -24,7 +25,10 @@ function spawn(args: string[], opts: Opts) {
   });
 }
 
-async function run(args: string[], opts: Opts) {
+async function run(
+  args: string[],
+  opts: { cwd: string; stdin?: string; env?: Record<string, string> },
+) {
   const proc = spawn(args, opts);
   const [stdout, stderr, code] = await Promise.all([
     new Response(proc.stdout).text(),
@@ -42,10 +46,10 @@ async function tmp() {
 
 async function setup() {
   const dir = await tmp();
-  await initRoot(dir);
-  const store = await openStore(dir);
-  const a = await store.tasks.create({ title: "Task A", description: "First" });
-  const b = await store.tasks.create({ title: "Task B", description: "Second" });
+  await Store.init(dir);
+  const store = new Store(dir);
+  const a = await store.createTask({ title: "Task A", description: "First" });
+  const b = await store.createTask({ title: "Task B", description: "Second" });
   return { dir, a, b };
 }
 
@@ -195,9 +199,9 @@ describe("doc commands", () => {
     const fromStdin = await run(["doc", "write", b.id, "spec"], { cwd: dir, stdin: content });
     expect(fromStdin.code).toBe(0);
 
-    const store = await openStore(dir);
-    const specA = join((await store.tasks.get(a.id)).dir, "spec.md");
-    const specB = join((await store.tasks.get(b.id)).dir, "spec.md");
+    const store = new Store(dir);
+    const specA = join((await store.getTask(a.id)).dir, "spec.md");
+    const specB = join((await store.getTask(b.id)).dir, "spec.md");
     expect(await Bun.file(specB).text()).toBe(await Bun.file(specA).text());
   });
 
@@ -310,8 +314,8 @@ describe("asset commands", () => {
     const res = await run(["asset", "put", a.id, "shot.png"], { cwd: dir });
     expect(res.code).toBe(0);
     expect(JSON.parse(res.stdout)).toBe("assets/shot.png");
-    const store = await openStore(dir);
-    const task = await store.tasks.get(a.id);
+    const store = new Store(dir);
+    const task = await store.getTask(a.id);
     expect(await Bun.file(join(task.dir, "assets", "shot.png")).text()).toBe("png-bytes");
   });
 });

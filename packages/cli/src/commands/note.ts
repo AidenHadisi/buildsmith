@@ -11,7 +11,7 @@ const add = defineCommand({
     file: { type: "string", description: "Read the body from a file instead of stdin" },
   },
   run: act(async (store, args) =>
-    store.notes.add(args.id, {
+    store.addNote(args.id, {
       author: args.author,
       target: args.target,
       verdict: args.verdict,
@@ -26,7 +26,7 @@ const list = defineCommand({
     id: { type: "positional", description: "Task id or unique prefix/suffix", required: true },
     target: { type: "string", description: "Only notes with this target" },
   },
-  run: act((store, args) => store.notes.list(args.id, args.target)),
+  run: act((store, args) => store.listNotes(args.id, args.target)),
 });
 
 export default defineCommand({

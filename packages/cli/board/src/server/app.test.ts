@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { initRoot, openStore } from "@buildsmith/store";
+import { Store } from "@buildsmith/store";
 import { createApp } from "./app.ts";
 
 const dirs: string[] = [];
@@ -18,17 +18,17 @@ const PNG_1X1 =
 async function setup() {
   const dir = await mkdtemp(join(tmpdir(), "buildsmith-web-"));
   dirs.push(dir);
-  await initRoot(dir);
-  const store = await openStore(dir);
-  const task = await store.tasks.create({
+  await Store.init(dir);
+  const store = new Store(dir);
+  const task = await store.createTask({
     title: "Board",
     description: "Kanban over .buildsmith.",
     criteria: ["renders"],
   });
-  await store.docs.write(task.id, "spec", "# Spec\n\nDo the thing.\n");
-  await store.slices.add(task.id, { title: "One", goal: "g", criteria: ["c"] });
-  await store.notes.add(task.id, { author: "critic", target: "spec", body: "Tighten this." });
-  await store.assets.put(task.id, "pixel.png", Buffer.from(PNG_1X1, "base64"));
+  await store.writeDoc(task.id, "spec", "# Spec\n\nDo the thing.\n");
+  await store.addSlice(task.id, { title: "One", goal: "g", criteria: ["c"] });
+  await store.addNote(task.id, { author: "critic", target: "spec", body: "Tighten this." });
+  await store.putAsset(task.id, "pixel.png", Buffer.from(PNG_1X1, "base64"));
   const distDir = join(dir, "dist");
   await mkdir(distDir, { recursive: true });
   return { store, task, distDir, app: createApp(store, distDir) };
@@ -69,7 +69,7 @@ describe("app", () => {
 
   test("GET /api/tasks/:id 400s on an ambiguous id", async () => {
     const { app, store } = await setup();
-    const other = await store.tasks.create({ title: "Other", description: "d" });
+    const other = await store.createTask({ title: "Other", description: "d" });
     const prefix = other.id.slice(0, 8);
     const res = await app.request(`/api/tasks/${prefix}`);
     expect(res.status).toBe(400);

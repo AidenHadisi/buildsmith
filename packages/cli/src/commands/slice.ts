@@ -14,7 +14,7 @@ const add = defineCommand({
   },
   // args._ holds the declared id first, then the criteria
   run: act((store, args) =>
-    store.slices.add(args.id, {
+    store.addSlice(args.id, {
       title: args.title,
       goal: args.goal,
       criteria: args._.slice(1),
@@ -27,7 +27,7 @@ const list = defineCommand({
   args: {
     id: { type: "positional", description: "Task id or unique prefix/suffix", required: true },
   },
-  run: act((store, args) => store.slices.list(args.id)),
+  run: act((store, args) => store.listSlices(args.id)),
 });
 
 const update = defineCommand({
@@ -43,7 +43,7 @@ const update = defineCommand({
     commit: { type: "string", description: "Commit hash" },
   },
   run: act((store, args) =>
-    store.slices.update(args.id, Number(args.n), { status: args.status, commit: args.commit }),
+    store.updateSlice(args.id, Number(args.n), { status: args.status, commit: args.commit }),
   ),
 });
 

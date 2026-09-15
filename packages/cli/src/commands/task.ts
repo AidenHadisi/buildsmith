@@ -1,4 +1,3 @@
-import { next } from "@buildsmith/store";
 import { defineCommand } from "citty";
 import { act } from "../io.ts";
 
@@ -13,7 +12,7 @@ const create = defineCommand({
   },
   // undeclared positionals (the criteria) land in args._
   run: act((store, args) =>
-    store.tasks.create({
+    store.createTask({
       title: args.title,
       description: args.description ?? "",
       criteria: args._,
@@ -24,8 +23,8 @@ const create = defineCommand({
 const list = defineCommand({
   meta: { name: "list", description: "List tasks with their next action" },
   run: act(async (store) => {
-    const tasks = await store.tasks.list();
-    return Promise.all(tasks.map(async (task) => ({ ...task, next: await next(store, task.id) })));
+    const tasks = await store.listTasks();
+    return Promise.all(tasks.map(async (task) => ({ ...task, next: await store.next(task.id) })));
   }),
 });
 
@@ -34,7 +33,7 @@ const get = defineCommand({
   args: {
     id: { type: "positional", description: "Task id or unique prefix/suffix", required: true },
   },
-  run: act((store, args) => store.tasks.get(args.id)),
+  run: act((store, args) => store.getTask(args.id)),
 });
 
 const move = defineCommand({
@@ -46,7 +45,7 @@ const move = defineCommand({
     after: { type: "string", description: "Place after this task" },
   },
   run: act((store, args) =>
-    store.tasks.move(args.id, args.column, { before: args.before, after: args.after }),
+    store.moveTask(args.id, args.column, { before: args.before, after: args.after }),
   ),
 });
 
@@ -64,7 +63,7 @@ const update = defineCommand({
   },
   // args._ holds the declared id first, then the criteria; undefined fields are no-ops in the store
   run: act((store, args) =>
-    store.tasks.update(args.id, {
+    store.updateTask(args.id, {
       title: args.title,
       description: args.description,
       branch: args.branch,

@@ -1,4 +1,4 @@
-import { openStore, type Store } from "@buildsmith/store";
+import { Store } from "@buildsmith/store";
 import type { ArgsDef, CommandContext, ParsedArgs } from "citty";
 import pc from "picocolors";
 
@@ -8,7 +8,7 @@ export const help = process.argv.some((arg) => arg === "--help" || arg === "-h")
 export function act<T extends ArgsDef>(
   fn: (store: Store, args: ParsedArgs<T>) => Promise<unknown>,
 ): (context: CommandContext<T>) => Promise<void> {
-  return guard(async (args) => fn(await openStore(process.cwd()), args));
+  return guard(async (args) => fn(new Store(process.cwd()), args));
 }
 
 export function guard<T extends ArgsDef>(

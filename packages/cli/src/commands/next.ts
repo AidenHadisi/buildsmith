@@ -1,4 +1,3 @@
-import { next } from "@buildsmith/store";
 import { defineCommand } from "citty";
 import { act } from "../io.ts";
 
@@ -7,5 +6,5 @@ export default defineCommand({
   args: {
     id: { type: "positional", description: "Task id or unique prefix/suffix", required: true },
   },
-  run: act((store, args) => next(store, args.id)),
+  run: act((store, args) => store.next(args.id)),
 });

@@ -31,16 +31,16 @@ function resolveModel(store: Store, model: string): string {
 
 async function vars(store: Store, task: TaskRecord, action: string, reason: string) {
   const kind = action.endsWith("-spec") ? "spec" : "architecture";
-  const doc = await store.docs.read(task.id, kind);
+  const doc = await store.readDoc(task.id, kind);
   const pick = SLICE_PICK[action];
-  const slice = pick ? (await store.slices.list(task.id)).find(pick) : undefined;
+  const slice = pick ? (await store.listSlices(task.id)).find(pick) : undefined;
   const target = action.endsWith("-verification")
     ? "verification"
     : slice
       ? `slice-${slice.n}`
       : kind;
-  const verification = await store.docs.read(task.id, "verification");
-  const notes = await store.notes.list(task.id, target);
+  const verification = await store.readDoc(task.id, "verification");
+  const notes = await store.listNotes(task.id, target);
   return {
     id: task.id,
     title: task.title,

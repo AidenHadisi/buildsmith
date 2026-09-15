@@ -1,4 +1,4 @@
-import { next, type Store, type TaskRecord } from "@buildsmith/store";
+import type { Store, TaskRecord } from "@buildsmith/store";
 import { join } from "node:path";
 import { defineCommand } from "citty";
 import { cli, renderBrief, SLICE_PICK } from "../brief.ts";
@@ -22,7 +22,7 @@ export default defineCommand({
     json: { type: "boolean", description: "Return { do, action, ... } (default when not a TTY)" },
   },
   run: act(async (store, args) => {
-    const task = await store.tasks.get(args.id);
+    const task = await store.getTask(args.id);
     const step = await decide(store, task);
     if (step.do === "self" && !json) {
       console.log(step.text);
@@ -33,7 +33,7 @@ export default defineCommand({
 });
 
 async function decide(store: Store, task: TaskRecord): Promise<Step> {
-  const due = await next(store, task.id);
+  const due = await store.next(task.id);
   const { action } = due;
   if (action === "none") return { do: "done", action };
   const cap = await capHit(store, task.id, action);
@@ -64,14 +64,14 @@ async function decide(store: Store, task: TaskRecord): Promise<Step> {
 async function capHit(store: Store, taskId: string, action: string): Promise<string | undefined> {
   if (action.endsWith("-spec") || action.endsWith("-architecture")) {
     const kind = action.endsWith("-spec") ? "spec" : "architecture";
-    const doc = await store.docs.read(taskId, kind);
+    const doc = await store.readDoc(taskId, kind);
     if (doc?.revision != null && doc.revision >= 5) {
       return `${kind} has reached revision ${doc.revision}; discuss with the user whether to approve it as-is or narrow the task.`;
     }
   }
   if (action === "work-slice" || action === "review-slice") {
     const pick = SLICE_PICK[action];
-    const slice = pick && (await store.slices.list(taskId)).find(pick);
+    const slice = pick && (await store.listSlices(taskId)).find(pick);
     const revises = slice ? await verdicts(store, taskId, `slice-${slice.n}`, "revise") : 0;
     if (slice && revises >= 3) {
       return `slice ${slice.n} has been sent back ${revises} times; discuss with the user whether to split it or change its approach.`;
@@ -87,19 +87,17 @@ async function capHit(store: Store, taskId: string, action: string): Promise<str
 }
 
 async function verdicts(store: Store, taskId: string, target: string, verdict: string) {
-  return (await store.notes.list(taskId, target)).filter((n) => n.verdict === verdict).length;
+  return (await store.listNotes(taskId, target)).filter((n) => n.verdict === verdict).length;
 }
 
 async function fingerprint(store: Store, task: TaskRecord): Promise<string> {
   const docs = await Promise.all(
-    (["spec", "architecture", "verification"] as const).map((kind) =>
-      store.docs.read(task.id, kind),
-    ),
+    (["spec", "architecture", "verification"] as const).map((kind) => store.readDoc(task.id, kind)),
   );
   const board = {
     task,
-    slices: await store.slices.list(task.id),
-    notes: await store.notes.list(task.id),
+    slices: await store.listSlices(task.id),
+    notes: await store.listNotes(task.id),
     docs: docs.map((doc) =>
       doc?.kind === "verification" ? doc.result : doc && [doc.status, doc.revision],
     ),

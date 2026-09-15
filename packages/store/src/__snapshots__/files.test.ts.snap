@@ -20,7 +20,7 @@ hello
 "
 `;
 
-exports[`root initRoot then findRoot from a nested cwd 1`] = `
+exports[`root Store.init then constructor from a nested cwd 1`] = `
 "columns:
   - backlog
   - planning
@@ -31,7 +31,7 @@ verify: ""
 "
 `;
 
-exports[`root initRoot then findRoot from a nested cwd 2`] = `
+exports[`root Store.init then constructor from a nested cwd 2`] = `
 "## Run
 
 ## Check

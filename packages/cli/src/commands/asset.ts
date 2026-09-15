@@ -9,7 +9,7 @@ const put = defineCommand({
     file: { type: "positional", description: "File to copy", required: true },
   },
   run: act(async (store, args) =>
-    store.assets.put(args.id, basename(args.file), await Bun.file(args.file).bytes()),
+    store.putAsset(args.id, basename(args.file), await Bun.file(args.file).bytes()),
   ),
 });
 

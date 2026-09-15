@@ -14,7 +14,7 @@ const write = defineCommand({
     file: { type: "string", description: "Read the body from a file instead of stdin" },
   },
   run: act(async (store, args) =>
-    store.docs.write(
+    store.writeDoc(
       args.id,
       asEnum("kind", args.kind, docKindSchema.options),
       await body(args.file),
@@ -33,7 +33,7 @@ const read = defineCommand({
     },
   },
   run: act((store, args) =>
-    store.docs.read(args.id, asEnum("kind", args.kind, docKindSchema.options)),
+    store.readDoc(args.id, asEnum("kind", args.kind, docKindSchema.options)),
   ),
 });
 
@@ -49,7 +49,7 @@ const status = defineCommand({
     },
   },
   run: act((store, args) =>
-    store.docs.setStatus(
+    store.setDocStatus(
       args.id,
       asEnum("kind", args.kind, ["spec", "architecture"]),
       asEnum("status", args.status, docStatusSchema.options),
@@ -68,9 +68,8 @@ const result = defineCommand({
     },
   },
   run: act((store, args) =>
-    store.docs.setResult(
+    store.setVerificationResult(
       args.id,
-      "verification",
       asEnum("result", args.result, verificationResultSchema.options),
     ),
   ),

@@ -1,5 +1,5 @@
 import { join, relative, resolve } from "node:path";
-import { StoreError, next, watch, type Store } from "@buildsmith/store";
+import { StoreError, type Store } from "@buildsmith/store";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
@@ -7,21 +7,21 @@ import { streamSSE } from "hono/streaming";
 export function createApp(store: Store, distDir: string) {
   return new Hono()
     .get("/api/board", async (c) => {
-      const list = await store.tasks.list();
+      const list = await store.listTasks();
       const tasks = await Promise.all(
-        list.map(async (task) => ({ ...task, next: await next(store, task.id) })),
+        list.map(async (task) => ({ ...task, next: await store.next(task.id) })),
       );
       return c.json({ columns: store.config.columns, tasks });
     })
     .get("/api/tasks/:id", async (c) => {
-      const task = await store.tasks.get(c.req.param("id"));
+      const task = await store.getTask(c.req.param("id"));
       const [nextAction, spec, architecture, verification, slices, notes] = await Promise.all([
-        next(store, task.id),
-        store.docs.read(task.id, "spec"),
-        store.docs.read(task.id, "architecture"),
-        store.docs.read(task.id, "verification"),
-        store.slices.list(task.id),
-        store.notes.list(task.id),
+        store.next(task.id),
+        store.readDoc(task.id, "spec"),
+        store.readDoc(task.id, "architecture"),
+        store.readDoc(task.id, "verification"),
+        store.listSlices(task.id),
+        store.listNotes(task.id),
       ]);
       return c.json({ task, next: nextAction, spec, architecture, verification, slices, notes });
     })
@@ -29,8 +29,7 @@ export function createApp(store: Store, distDir: string) {
     .get("/events", (c) =>
       streamSSE(c, async (stream) => {
         await stream.writeSSE({ event: "ping", data: "" });
-        const stop = watch(
-          store.root,
+        const stop = store.watch(
           (e) => void stream.writeSSE({ event: "change", data: JSON.stringify(e) }),
         );
         stream.onAbort(stop);
@@ -41,7 +40,7 @@ export function createApp(store: Store, distDir: string) {
       }),
     )
     .get("/tasks/:id/assets/:path{.+}", async (c) => {
-      const task = await store.tasks.get(c.req.param("id"));
+      const task = await store.getTask(c.req.param("id"));
       const assetsDir = join(task.dir, "assets");
       const file = resolve(assetsDir, c.req.param("path"));
       if (relative(assetsDir, file).startsWith("..")) {

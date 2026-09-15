@@ -1,4 +1,3 @@
-import { next } from "@buildsmith/store";
 import { defineCommand } from "citty";
 import { renderBrief } from "../brief.ts";
 import { act } from "../io.ts";
@@ -15,8 +14,8 @@ export default defineCommand({
     json: { type: "boolean", description: "Return { action, role, model, readonly, text }" },
   },
   run: act(async (store, args) => {
-    const task = await store.tasks.get(args.id);
-    const due = await next(store, task.id);
+    const task = await store.getTask(args.id);
+    const due = await store.next(task.id);
     const action = args.action ?? due.action;
     if (action === "none") {
       if (args.json) return { action };
