@@ -590,6 +590,6 @@ describe("repo", () => {
   test("config models round-trip", async () => {
     const { root } = await setup();
     await writeFile(join(root, "config.yml"), "models:\n  strong: my-strong\n");
-    expect(loadConfig(root).models).toEqual({ strong: "my-strong" });
+    expect(loadConfig(root).models).toEqual({ strong: "my-strong", fast: "gemini-3.5-flash" });
   });
 });

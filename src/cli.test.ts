@@ -401,7 +401,7 @@ describe("step command", () => {
     expect(res.do).toBe("dispatch");
     expect(res.action).toBe("write-project");
     expect(res.readonly).toBe(false);
-    expect(res.model).toBe("strong");
+    expect(res.model).toBe("claude-opus-4.6");
     expect(res.prompt).toContain(`brief ${task.id}`);
   });
 
@@ -412,12 +412,11 @@ describe("step command", () => {
     expect(res.do).toBe("dispatch");
     expect(res.action).toBe("review-spec");
     expect(res.readonly).toBe(true);
-    expect(res.model).toBe("strong");
+    expect(res.model).toBe("claude-opus-4.6");
     expect(res.prompt).toContain(`brief ${a.id}`);
 
     const config = join(dir, ".buildsmith", "config.yml");
-    const text = await Bun.file(config).text();
-    await Bun.write(config, `${text}models:\n  strong: my-strong-model\n`);
+    await Bun.write(config, "models:\n  strong: my-strong-model\n");
     expect((await step(dir, a.id)).model).toBe("my-strong-model");
   });
 
@@ -495,7 +494,7 @@ describe("brief command", () => {
     const brief = JSON.parse(stdout);
     expect(brief.action).toBe("review-spec");
     expect(brief.role).toBe("reviewer");
-    expect(brief.model).toBe("strong");
+    expect(brief.model).toBe("claude-opus-4.6");
     expect(brief.readonly).toBe(true);
     expect(brief.text).toContain("The spec body.");
     expect(brief.text).toContain("Two implementers would build the same thing");
@@ -529,7 +528,7 @@ describe("brief command", () => {
     const { stdout, code } = await run(["brief", a.id], { cwd: dir });
     expect(code).toBe(0);
     const brief = JSON.parse(stdout);
-    expect(brief.model).toBe("fast");
+    expect(brief.model).toBe("gemini-3.5-flash");
     expect(brief.text.trim()).toBe("CUSTOM Task A");
   });
 

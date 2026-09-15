@@ -188,7 +188,9 @@ describe("root", () => {
   - building
   - review
   - done
-verify: ""
+models:
+  strong: claude-opus-4.6
+  fast: gemini-3.5-flash
 `);
     expect(await Bun.file(join(root, "project.md")).exists()).toBe(false);
   });

@@ -41,7 +41,7 @@ export async function renderBrief(
 }
 
 function resolveModel(root: string, model: string): string {
-  if (model === "strong" || model === "fast") return loadConfig(root).models[model] ?? model;
+  if (model === "strong" || model === "fast") return loadConfig(root).models[model];
   return model;
 }
 

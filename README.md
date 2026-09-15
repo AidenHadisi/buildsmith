@@ -170,7 +170,7 @@ Shared fragments eject the same way: `standards/spec` and `standards/design` hol
 
 ### Models and columns
 
-Templates name a tier, `strong` or `fast`. Map tiers to models in `.buildsmith/config.yml`:
+Templates name a tier, `strong` or `fast`. `init` writes defaults for both to `.buildsmith/config.yml`; change them to whatever your agent host understands:
 
 ```yaml
 models:

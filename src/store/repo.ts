@@ -15,14 +15,19 @@ import {
 } from "./files.ts";
 
 const DEFAULT_COLUMNS = ["backlog", "planning", "building", "review", "done"] as const;
+const DEFAULT_MODELS = { strong: "claude-opus-4.6", fast: "gemini-3.5-flash" } as const;
 
 const configSchema = z.looseObject({
   columns: z
     .array(z.string())
     .min(1)
     .default([...DEFAULT_COLUMNS]),
-  verify: z.string().default(""),
-  models: z.object({ strong: z.string().optional(), fast: z.string().optional() }).default({}),
+  models: z
+    .object({
+      strong: z.string().default(DEFAULT_MODELS.strong),
+      fast: z.string().default(DEFAULT_MODELS.fast),
+    })
+    .default(DEFAULT_MODELS),
 });
 export type Config = z.infer<typeof configSchema>;
 
@@ -50,7 +55,7 @@ export async function init(dir: string): Promise<string> {
   try {
     await writeFile(
       join(root, "config.yml"),
-      new Document({ columns: [...DEFAULT_COLUMNS], verify: "" }).toString(),
+      new Document({ columns: [...DEFAULT_COLUMNS], models: { ...DEFAULT_MODELS } }).toString(),
       { flag: "wx" },
     );
   } catch (err) {
