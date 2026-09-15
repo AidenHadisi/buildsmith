@@ -53,7 +53,7 @@ Implement exactly this slice so every one of its criteria is observably true. N 
    - Touch only the files the slice names or clearly implies. Write the tests the slice lists, one behavior each.
    - Read the spec when a criterion is unclear.
 
-4. **Check and commit.** Run the repo's check commands (see Project) and fix what they report. Commit on the branch with a conventional message (`feat:`, `fix:`, `refactor:`, …) and take the sha with `git rev-parse HEAD`.
+4. **Check and commit.** You commit on `{{branch}}`; if HEAD is another branch, stop and report it instead of committing. Run the repo's check commands (see Project) and fix what they report. Commit with a conventional message (`feat:`, `fix:`, `refactor:`, …) and take the sha with `git rev-parse HEAD`.
 
 If the slice cannot be built as specified — a contract in the architecture cannot compile against reality, or a criterion contradicts another — stop. Do not commit half-work; record it as blocked instead.
 

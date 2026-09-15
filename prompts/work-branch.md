@@ -42,7 +42,7 @@ The newest note above is a `revise` from the code reviewer.
    - Hold every piece you add or change to the Standards above.
    - Touch only the files the findings imply.
 
-3. **Check and commit.** Run the repo's check commands (see Project) and fix what they report. Commit on the branch with a conventional message (`fix:`, `refactor:`, …).
+3. **Check and commit.** You commit on `{{branch}}`; if HEAD is another branch, stop and report it instead of committing. Run the repo's check commands (see Project) and fix what they report. Commit with a conventional message (`fix:`, `refactor:`, …).
 
 ## Record
 

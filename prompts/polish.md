@@ -48,7 +48,7 @@ Restructure and clean the working diff without changing observable behavior or a
 - Follow every change through callers, imports, and tests; never leave a half-done move.
 - Contract changes, new dependencies, and redesigns are out of scope — list them under Flagged instead.
 
-4. **Check and commit.** Run the repo's check commands (see Project) and fix what they report. Commit on the branch with a conventional message (`refactor:`), unless the polish is empty.
+4. **Check and commit.** You commit on `{{branch}}`; if HEAD is another branch, stop and report it instead of committing. Run the repo's check commands (see Project) and fix what they report. Commit with a conventional message (`refactor:`), unless the polish is empty.
 
 ## Record
 
