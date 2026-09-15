@@ -1,6 +1,6 @@
-import { copyFile, cp, mkdir, rm } from "node:fs/promises";
+import { copyFile, mkdir, readdir, rm } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { defineCommand } from "citty";
 import { asEnum, guard } from "../io.ts";
 import { pluginDir } from "../paths.ts";
@@ -30,6 +30,15 @@ async function run(cmd: string[]): Promise<Status> {
   return "done";
 }
 
+// fs.cp can't read the embedded /$bunfs/ of a compiled binary; readdir + Bun.write can.
+async function copyTree(src: string, dest: string): Promise<void> {
+  for (const entry of await readdir(src, { recursive: true, withFileTypes: true })) {
+    if (entry.isDirectory()) continue;
+    const file = join(entry.parentPath, entry.name);
+    await Bun.write(join(dest, relative(src, file)), Bun.file(file));
+  }
+}
+
 async function setup(names: string[], dry: boolean): Promise<Step[]> {
   const home = homedir();
   const steps: Step[] = [];
@@ -37,9 +46,8 @@ async function setup(names: string[], dry: boolean): Promise<Step[]> {
     if (host === "cursor") {
       const dest = join(home, ".cursor/plugins/local/buildsmith");
       if (!dry) {
-        await mkdir(dirname(dest), { recursive: true });
         await rm(dest, { recursive: true, force: true });
-        await cp(pluginDir, dest, { recursive: true });
+        await copyTree(pluginDir, dest);
       }
       steps.push({
         host,
