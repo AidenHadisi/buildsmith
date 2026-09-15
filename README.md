@@ -10,7 +10,7 @@
 
 Coding agents are good at steps and bad at processes. They forget the review loop, skip the gate, and grade their own homework. Skills are advice; nothing stops an agent from deciding it has done enough.
 
-Buildsmith moves the process out of the model's head and onto disk. Every task is a folder of markdown. A small CLI reads those files and returns exactly one next step. Agents execute it. They do not choose it.
+Buildsmith moves the process out of the model's head and onto disk. Every task is a folder of markdown: git-friendly, diffable, human-readable. A small CLI is the only writer, and it reads those files to return exactly one next step. Agents execute it. They do not choose it.
 
 ![The Buildsmith board](images/board.png)
 
@@ -21,7 +21,7 @@ Buildsmith moves the process out of the model's head and onto disk. Every task i
 - **Fresh eyes on every review.** Reviewing, coding, polishing, and live-testing are dispatched to a new subagent with one brief and no memory of the last round. The planner never reviews its own work.
 - **Two approvals, then it builds.** You approve the spec and the architecture. Everything between approval and a verified feature runs without you, and stops for you when a slice is blocked or a loop hits its cap.
 - **Live verification, not just green tests.** The last step runs the real process, exercises every criterion in the spec, and records evidence a skeptic can read.
-- **Markdown on disk.** Specs, architectures, slices, notes, and verdicts are plain files under `.buildsmith/`. Diffable, reviewable, `git blame`-able.
+- **Markdown on disk.** Specs, architectures, slices, notes, and verdicts are plain files under `.buildsmith/`. Diffable, reviewable, `git blame`-able. Never edited by hand; the CLI is the only writer.
 - **A plain CLI.** Every command prints JSON. Any agent that can run a shell can drive it.
 - **Prompts you own.** Every step is a markdown template. Eject one into your repo and edit it, or append to it and leave the built-in intact.
 - **Works where your agent lives.** One command installs the plugin for Cursor, Claude Code, or Codex.
