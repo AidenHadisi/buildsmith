@@ -196,7 +196,7 @@ Every command prints JSON. Task ids accept a unique prefix.
 | `note add\|list`                  | Record and read notes and verdicts                            |
 | `project read\|write\|lesson`     | Manage `project.md`                                           |
 | `prompt list\|show\|eject\|diff`  | Inspect and override prompt templates                         |
-| `asset put <id> <file>`           | Attach a file to a task                                       |
+| `asset put <id> <file>`           | Attach a file to a task; prints the markdown to embed it      |
 
 Run any command with `--help` for its flags.
 

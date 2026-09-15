@@ -326,7 +326,7 @@ describe("asset commands", () => {
     await Bun.write(join(dir, "shot.png"), "png-bytes");
     const res = await run(["asset", "put", a.id, "shot.png"], { cwd: dir });
     expect(res.code).toBe(0);
-    expect(JSON.parse(res.stdout)).toBe("assets/shot.png");
+    expect(JSON.parse(res.stdout)).toBe("![shot.png](assets/shot.png)");
     const task = await getTask(findRoot(dir), a.id);
     expect(await Bun.file(join(task.dir, "assets", "shot.png")).text()).toBe("png-bytes");
   });

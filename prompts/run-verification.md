@@ -51,7 +51,7 @@ If the prior run failed, a fix slice has since been built. Re-run everything, no
 
 3. **Exercise.** For each criterion, run its live check and capture what you observed.
    - **Backend:** request the endpoint with a real body; record status and response shape.
-   - **Frontend:** open the page in a real browser; confirm it renders, the feature responds, and the console is clean. Screenshot it and save it with `{{cli}} asset put {{id}} <file>`, which prints the asset path to cite in `Saw:`. A screenshot is required for anything with a UI.
+   - **Frontend:** open the page in a real browser; confirm it renders, the feature responds, and the console is clean. Screenshot it and save it with `{{cli}} asset put {{id}} <file>`, which prints a `![name](assets/name.png)` line; paste that line verbatim into `Saw:` so the board renders the image. A screenshot is required for anything with a UI.
    - When something misbehaves, record the failure as observed. Do not fix the code.
    - If a criterion cannot be exercised live, mark it Blocked and say why. Never skip silently.
 
@@ -62,7 +62,7 @@ If the prior run failed, a fix slice has since been built. Re-run everything, no
 Write for a skeptical engineer who will not re-run anything. Per criterion:
 
 - `Ran:` the command or URL, `against:` local DB | real DB under test account | stubbed
-- `Saw:` what you observed: status, response shape, log line, or asset path
+- `Saw:` what you observed: status, response shape, log line, or the `![name](assets/name.png)` line for a screenshot
 - **Pass | Fail | Blocked**
 
 Then two sections: **Blocked** (what could not be exercised and why, or "None.") and **Cleanup** (git diff clean, `TODO(live-test)` remaining, test records removed).
