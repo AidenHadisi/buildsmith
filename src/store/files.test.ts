@@ -182,12 +182,11 @@ describe("root", () => {
     const dir = await tempDir();
     const root = await init(dir);
     expect(findRoot(join(dir, "nested", "deep"))).toBe(root);
-    expect(await readFile(join(root, "config.yml"), "utf8")).toBe(`columns:
-  - backlog
-  - planning
-  - building
-  - review
-  - done
+    expect(await readFile(join(root, "config.yml"), "utf8"))
+      .toBe(`# Buildsmith repo config. Every key is optional; see README "Models".
+# models:
+#   strong: <model id, default inherit>
+#   fast: <model id, default inherit>
 `);
     expect(await Bun.file(join(root, "project.md")).exists()).toBe(false);
   });

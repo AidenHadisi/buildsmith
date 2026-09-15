@@ -59,7 +59,7 @@ function App() {
       {data ? (
         <div className={columnsRow}>
           {data.columns.map((name) => {
-            const tasks = data.tasks.filter((task) => task.column === name);
+            const tasks = data.tasks.filter((task) => task.next.column === name);
             return (
               <div key={name} className={column}>
                 <h2 className="mb-3 flex shrink-0 items-center justify-between text-sm font-medium capitalize">

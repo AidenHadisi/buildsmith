@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { decide, type Snapshot } from "./pipeline.ts";
+import { decide, type Column, type Snapshot } from "./pipeline.ts";
 
 const empty: Snapshot = {
   project: true,
@@ -155,5 +155,37 @@ describe("next", () => {
       action: "run-verification",
       ask: expect.stringContaining("failed 2 times"),
     });
+  });
+
+  test.each<[Partial<Snapshot>, Column]>([
+    [{ project: false }, "backlog"],
+    [{}, "backlog"],
+    [{ spec: { status: "draft" } }, "planning"],
+    [{ spec: { status: "draft", lastVerdict: "better-design" } }, "planning"],
+    [{ spec: { status: "reviewed" } }, "planning"],
+    [{ spec: approved }, "planning"],
+    [{ spec: approved, architecture: { status: "draft" } }, "planning"],
+    [{ spec: approved, architecture: approved, slices: [slice(1, "todo")] }, "building"],
+    [{ spec: approved, architecture: approved, slices: [slice(1, "done")] }, "building"],
+    [
+      { spec: approved, architecture: approved, slices: [slice(1, "done")], lastEnd: polishDone },
+      "review",
+    ],
+    [
+      { spec: approved, architecture: approved, slices: [slice(1, "done")], lastEnd: branchPass },
+      "review",
+    ],
+    [
+      {
+        spec: approved,
+        architecture: approved,
+        slices: [slice(1, "done")],
+        lastEnd: branchPass,
+        verification: { result: "pass" },
+      },
+      "done",
+    ],
+  ])("column for %o is %s", (patch, column) => {
+    expect(decide({ ...empty, ...patch }).column).toBe(column);
   });
 });

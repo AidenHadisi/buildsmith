@@ -84,12 +84,13 @@ describe("help", () => {
     }
   });
 
-  test("task --help lists create, list, get, move, update", async () => {
+  test("task --help lists create, list, get, update", async () => {
     const { stdout, code } = await run(["task", "--help"], { cwd: await tmp() });
     expect(code).toBe(0);
-    for (const sub of ["create", "list", "get", "move", "update"]) {
+    for (const sub of ["create", "list", "get", "update"]) {
       expect(stdout).toContain(sub);
     }
+    expect(stdout).not.toContain("move");
   });
 
   test("task get --help documents the id argument", async () => {
@@ -125,8 +126,10 @@ describe("task commands", () => {
     expect(code).toBe(0);
     const tasks = JSON.parse(stdout);
     expect(tasks).toHaveLength(2);
-    expect(tasks[0].column).toBe("backlog");
+    expect(tasks[0].next.column).toBe("backlog");
     expect(tasks[0].next.stage).toBe("spec");
+    expect(tasks[0]).not.toHaveProperty("column");
+    expect(tasks[0]).not.toHaveProperty("order");
   });
 
   test("ambiguous short id prints one stderr line and exits 1", async () => {
@@ -148,7 +151,7 @@ describe("task commands", () => {
     expect(JSON.parse(err).error).toBe("task nope not found");
   });
 
-  test("init, create, move, update, get round-trip in a temp repo", async () => {
+  test("init, create, update, get round-trip in a temp repo", async () => {
     const dir = await tmp();
     const init = await run(["init"], { cwd: dir });
     expect(init.code).toBe(0);
@@ -163,17 +166,12 @@ describe("task commands", () => {
     expect(task.id).toBe("x");
     expect(task.criteria).toBeUndefined();
 
-    const moved = await run(["task", "move", task.id, "planning"], { cwd: dir });
-    expect(moved.code).toBe(0);
-    expect(JSON.parse(moved.stdout).column).toBe("planning");
-
     const updated = await run(["task", "update", task.id, "--branch", "b"], { cwd: dir });
     expect(updated.code).toBe(0);
 
     const got = await run(["task", "get", "x"], { cwd: dir });
     expect(got.code).toBe(0);
     const full = JSON.parse(got.stdout);
-    expect(full.column).toBe("planning");
     expect(full.branch).toBe("b");
     expect(full.criteria).toBeUndefined();
 

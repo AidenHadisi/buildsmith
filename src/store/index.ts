@@ -16,7 +16,6 @@ export {
   createTask,
   getTask,
   listTasks,
-  moveTask,
   putAsset,
   taskDir,
   updateTask,

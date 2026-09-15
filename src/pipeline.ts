@@ -29,6 +29,21 @@ export type Stage =
   | "verify"
   | "done";
 
+export const COLUMNS = ["backlog", "planning", "building", "review", "done"] as const;
+export type Column = (typeof COLUMNS)[number];
+
+// backlog is not in LANE: it means no spec doc exists, which stage alone cannot express
+const LANE: Record<Stage, Column> = {
+  project: "planning",
+  spec: "planning",
+  architecture: "planning",
+  building: "building",
+  polish: "building",
+  review: "review",
+  verify: "review",
+  done: "done",
+};
+
 export type Slice = { n: number; title: string; status: SliceStatus };
 export type Doc = { status: DocStatus; revision?: number; lastVerdict?: string } | null;
 
@@ -45,17 +60,20 @@ export type Snapshot = {
 
 export type Next = {
   stage: Stage;
+  column: Column;
   action: Action;
   reason: string;
   blocked?: Slice[];
   ask?: string;
 };
 
-type Rule = { test: (s: Snapshot) => unknown; run: (s: Snapshot, hit: unknown) => Next };
+type Due = Omit<Next, "column" | "ask">;
+
+type Rule = { test: (s: Snapshot) => unknown; run: (s: Snapshot, hit: unknown) => Due };
 
 function when<T>(
   test: (s: Snapshot) => T,
-  result: Next | ((s: Snapshot, hit: NonNullable<T>) => Next),
+  result: Due | ((s: Snapshot, hit: NonNullable<T>) => Due),
 ): Rule {
   const run = typeof result === "function" ? result : () => result;
   return { test, run: run as Rule["run"] };
@@ -179,8 +197,9 @@ export function decide(s: Snapshot): Next {
     const hit = rule.test(s);
     if (hit) {
       const due = rule.run(s, hit);
+      const column = s.spec ? LANE[due.stage] : "backlog";
       const ask = askFor(s, due.action);
-      return ask ? { ...due, ask } : due;
+      return ask ? { ...due, column, ask } : { ...due, column };
     }
   }
   throw new Error("pipeline exhausted");

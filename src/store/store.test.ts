@@ -2,8 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as z from "zod";
 import { next } from "../pipeline.ts";
 import { StoreError } from "./errors.ts";
+import { record } from "./files.ts";
 import {
   addLesson,
   addNote,
@@ -16,7 +18,6 @@ import {
   listSlices,
   listTasks,
   loadConfig,
-  moveTask,
   parseSlices,
   putAsset,
   projectHasContent,
@@ -99,35 +100,28 @@ function freeze(text: string): string {
     .replace(/\r\n/g, "\n");
 }
 
+// Raw task.md access, bypassing the task schema so tests can plant any frontmatter.
+const taskMd = (dir: string) => record(join(dir, "task.md"), z.looseObject({}));
+
 describe("tasks", () => {
-  test("create, get, list, update, move", async () => {
+  test("create, get, list, update", async () => {
     const { root } = await setup();
-    const a = await createTask(root, {
-      title: "Ship store",
-      description: "Own the files.",
-    });
-    expect(a).toMatchObject({
-      id: "ship-store",
-      column: "backlog",
-    });
+    const a = await createTask(root, { title: "Ship store", description: "Own the files." });
+    expect(a).toMatchObject({ id: "ship-store" });
     expect(await getTask(root, a.id)).toMatchObject({ title: "Ship store" });
 
     const b = await createTask(root, { title: "Second", description: "Another" });
-    expect((await listTasks(root)).map((t) => t.id)).toEqual([a.id, b.id]);
+    await taskMd(a.dir).patch({ updatedAt: "2026-01-01T00:00:00.000Z" });
+    await taskMd(b.dir).patch({ updatedAt: "2026-01-02T00:00:00.000Z" });
+    expect((await listTasks(root)).map((t) => t.id)).toEqual([b.id, a.id]);
 
     await updateTask(root, a.id, { branch: "feat/store", description: "Updated." });
-    const moved = await moveTask(root, a.id, "planning");
-    expect(moved).toMatchObject({
-      column: "planning",
-      branch: "feat/store",
-      description: "Updated.",
-    });
+    await taskMd(a.dir).patch({ updatedAt: "2026-01-03T00:00:00.000Z" });
+    expect((await listTasks(root)).map((t) => t.id)).toEqual([a.id, b.id]);
     expect(a.dir).toBe(join(root, "tasks", "ship-store"));
     expect(freeze(await readFile(join(a.dir, "task.md"), "utf8"))).toBe(`---
 id: ship-store
 title: Ship store
-column: planning
-order: a0
 createdAt: <iso>
 updatedAt: <iso>
 branch: feat/store
@@ -189,30 +183,25 @@ Updated.
     await expect(getTask(root, "Store")).rejects.toThrow("task Store not found");
   });
 
-  test("move with before/after", async () => {
+  test("getTask reads a task.md with stale column and order", async () => {
     const { root } = await setup();
-    const a = await createTask(root, { title: "A", description: "a" });
-    const b = await createTask(root, { title: "B", description: "b" });
-    const c = await createTask(root, { title: "C", description: "c" });
-    await moveTask(root, c.id, "backlog", { after: a.id, before: b.id });
-    expect((await listTasks(root)).map((t) => t.id)).toEqual([a.id, c.id, b.id]);
-  });
-
-  test("move with short ids", async () => {
-    const { root } = await setup();
-    const a = await createTask(root, { title: "Alpha", description: "a" });
-    const b = await createTask(root, { title: "Bravo", description: "b" });
-    await moveTask(root, "al", "backlog", { after: "br" });
-    expect((await listTasks(root)).map((t) => t.id)).toEqual([b.id, a.id]);
-    await expect(moveTask(root, "al", "backlog", { after: "al" })).rejects.toThrow(
-      "not found in backlog",
+    const dir = join(root, "tasks", "stale-task");
+    await mkdir(dir, { recursive: true });
+    await taskMd(dir).create(
+      {
+        id: "stale-task",
+        title: "Stale",
+        column: "backlog",
+        order: "a0",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      "old files still parse.\n",
     );
-  });
-
-  test("rejects an unknown column", async () => {
-    const { root } = await setup();
-    const a = await createTask(root, { title: "A", description: "a" });
-    await expect(moveTask(root, a.id, "nope")).rejects.toThrow("unknown column");
+    await expect(getTask(root, "stale-task")).resolves.toMatchObject({
+      id: "stale-task",
+      title: "Stale",
+    });
   });
 });
 
@@ -594,21 +583,18 @@ describe("repo", () => {
     process.env.XDG_CONFIG_HOME = xdg;
 
     expect(loadConfig(root)).toEqual({
-      columns: ["backlog", "planning", "building", "review", "done"],
       models: { strong: "inherit", fast: "inherit" },
     });
 
     const user = join(xdg, "buildsmith", "config.yml");
     await mkdir(join(xdg, "buildsmith"));
-    await writeFile(user, "models:\n  fast: user-fast\ncolumns: [todo, done]\n");
+    await writeFile(user, "models:\n  fast: user-fast\n");
     expect(loadConfig(root)).toEqual({
-      columns: ["backlog", "planning", "building", "review", "done"],
       models: { strong: "inherit", fast: "user-fast" },
     });
 
     await writeFile(join(root, "config.yml"), "models:\n  strong: repo-strong\n");
     expect(loadConfig(root)).toEqual({
-      columns: ["todo", "done"],
       models: { strong: "repo-strong", fast: "user-fast" },
     });
 
