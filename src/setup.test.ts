@@ -1,0 +1,89 @@
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const main = join(import.meta.dir, "main.ts");
+const plugin = join(import.meta.dir, "../plugin");
+const dirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
+
+async function run(args: string[], home: string) {
+  const proc = Bun.spawn([process.execPath, main, ...args], {
+    cwd: home,
+    stdin: "ignore",
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, HOME: home, PATH: "/usr/bin:/bin", NO_COLOR: "1" },
+  });
+  const [stdout, stderr, code] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  return { stdout, stderr, code };
+}
+
+async function tmp() {
+  const dir = await mkdtemp(join(tmpdir(), "buildsmith-setup-"));
+  dirs.push(dir);
+  return dir;
+}
+
+describe("setup", () => {
+  test("setup --dry-run JSON lists all three hosts with dry-run", async () => {
+    const { stdout, code } = await run(["setup", "--dry-run"], await tmp());
+    expect(code).toBe(0);
+    const steps = JSON.parse(stdout) as { host: string; status: string }[];
+    expect(new Set(steps.map((s) => s.host))).toEqual(new Set(["cursor", "claude", "codex"]));
+    expect(steps.every((s) => s.status === "dry-run")).toBe(true);
+  });
+
+  test("setup cursor copies the plugin dir and is idempotent", async () => {
+    const home = await tmp();
+    const dest = join(home, ".cursor/plugins/local/buildsmith");
+    for (let i = 0; i < 2; i++) {
+      const { code } = await run(["setup", "cursor"], home);
+      expect(code).toBe(0);
+    }
+    expect(await Bun.file(join(dest, ".cursor-plugin/plugin.json")).exists()).toBe(true);
+    expect(await Bun.file(join(dest, "skills/buildsmith/SKILL.md")).text()).toBe(
+      await Bun.file(join(plugin, "skills/buildsmith/SKILL.md")).text(),
+    );
+  });
+
+  test("a pre-existing directory at the install path is replaced", async () => {
+    const home = await tmp();
+    const dest = join(home, ".cursor/plugins/local/buildsmith");
+    await mkdir(dest, { recursive: true });
+    await Bun.write(join(dest, "stale.txt"), "old");
+    const { code } = await run(["setup", "cursor"], home);
+    expect(code).toBe(0);
+    expect(await Bun.file(join(dest, "stale.txt")).exists()).toBe(false);
+    expect(await Bun.file(join(dest, ".cursor-plugin/plugin.json")).exists()).toBe(true);
+  });
+
+  test("setup claude statuses printed, exit 0", async () => {
+    const { stdout, code } = await run(["setup", "claude"], await tmp());
+    expect(code).toBe(0);
+    const steps = JSON.parse(stdout) as { host: string; status: string }[];
+    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.every((s) => s.host === "claude" && s.status === "printed")).toBe(true);
+  });
+
+  test("setup codex statuses printed, exit 0", async () => {
+    const { stdout, code } = await run(["setup", "codex"], await tmp());
+    expect(code).toBe(0);
+    const steps = JSON.parse(stdout) as { host: string; status: string }[];
+    expect(steps.length).toBeGreaterThan(0);
+    expect(steps.every((s) => s.host === "codex" && s.status === "printed")).toBe(true);
+  });
+
+  test("setup bogus exits 1", async () => {
+    const { code } = await run(["setup", "bogus"], await tmp());
+    expect(code).toBe(1);
+  });
+});

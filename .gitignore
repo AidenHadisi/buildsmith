@@ -1,0 +1,16 @@
+node_modules/
+dist/
+release/
+coverage/
+.vite/
+*.tsbuildinfo
+*.log
+*.tgz
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.env
+.env.*
+!.env.example
+.playwright-cli/

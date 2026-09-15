@@ -1,0 +1,11 @@
+{
+  "name": "buildsmith",
+  "owner": { "name": "Aiden Hadisi" },
+  "plugins": [
+    {
+      "name": "buildsmith",
+      "source": "./plugin",
+      "description": "Board-driven agentic coding pipeline: spec, architecture, slices, and live verification, each step briefed from the Buildsmith board."
+    }
+  ]
+}

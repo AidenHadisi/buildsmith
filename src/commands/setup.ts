@@ -1,0 +1,75 @@
+import { readdir, rm } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, relative } from "node:path";
+import { defineCommand } from "citty";
+import { pluginDir } from "../paths.ts";
+
+const HOSTS = ["cursor", "claude", "codex"] as const;
+type Host = (typeof HOSTS)[number];
+type Status = "done" | "printed" | "dry-run";
+type Step = { host: Host; action: string; status: Status };
+
+export default defineCommand({
+  meta: { name: "setup", description: "Install the Buildsmith plugin for agent hosts" },
+  args: {
+    hosts: {
+      type: "positional",
+      description: "cursor, claude, codex (default: all)",
+      required: false,
+    },
+    dryRun: { type: "boolean", description: "Print actions without changing anything" },
+  },
+  run: ({ args }) => setup(args._.length ? args._ : [...HOSTS], Boolean(args.dryRun)),
+});
+
+async function run(cmd: string[]): Promise<Status> {
+  const proc = Bun.spawn(cmd, { stdio: ["inherit", "inherit", "inherit"] });
+  const code = await proc.exited;
+  if (code) throw new Error(`${cmd.join(" ")} exited ${code}`);
+  return "done";
+}
+
+// fs.cp can't read the embedded /$bunfs/ of a compiled binary; readdir + Bun.write can.
+async function copyTree(src: string, dest: string): Promise<void> {
+  for (const entry of await readdir(src, { recursive: true, withFileTypes: true })) {
+    if (entry.isDirectory()) continue;
+    const file = join(entry.parentPath, entry.name);
+    await Bun.write(join(dest, relative(src, file)), Bun.file(file));
+  }
+}
+
+async function setup(names: string[], dry: boolean): Promise<Step[]> {
+  const home = homedir();
+  const steps: Step[] = [];
+  for (const name of names) {
+    const host = HOSTS.find((h) => h === name);
+    if (!host) throw new Error(`invalid host ${name}: expected ${HOSTS.join("|")}`);
+    if (host === "cursor") {
+      const dest = join(home, ".cursor/plugins/local/buildsmith");
+      if (!dry) {
+        await rm(dest, { recursive: true, force: true });
+        await copyTree(pluginDir, dest);
+      }
+      steps.push({
+        host,
+        action: `copy ${pluginDir} -> ${dest}`,
+        status: dry ? "dry-run" : "done",
+      });
+    } else {
+      const verb = host === "claude" ? "install" : "add";
+      const cmds = [
+        [host, "plugin", "marketplace", "add", "AidenHadisi/buildsmith"],
+        [host, "plugin", verb, "buildsmith@buildsmith"],
+      ];
+      const bin = Bun.which(host);
+      for (const cmd of cmds) {
+        steps.push({
+          host,
+          action: `run: ${cmd.join(" ")}`,
+          status: dry ? "dry-run" : bin ? await run(cmd) : "printed",
+        });
+      }
+    }
+  }
+  return steps;
+}
