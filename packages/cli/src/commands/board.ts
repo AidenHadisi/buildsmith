@@ -47,15 +47,15 @@ function listen(app: AppType, port: number) {
   }
 }
 
+const OPENERS: Partial<Record<NodeJS.Platform, string[]>> = {
+  darwin: ["open"],
+  win32: ["cmd", "/c", "start", ""],
+};
+
 function openBrowser(url: string) {
-  const cmd =
-    process.platform === "darwin"
-      ? ["open", url]
-      : process.platform === "win32"
-        ? ["cmd", "/c", "start", "", url]
-        : ["xdg-open", url];
+  const opener = OPENERS[process.platform] ?? ["xdg-open"];
   try {
-    Bun.spawn(cmd, { stdio: ["ignore", "ignore", "ignore"] });
+    Bun.spawn([...opener, url], { stdio: ["ignore", "ignore", "ignore"] });
   } catch {
     // no browser opener on this machine; the URL is already printed
   }

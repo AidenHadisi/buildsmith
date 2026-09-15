@@ -605,12 +605,15 @@ describe("board command", () => {
   // Starts the server and resolves once it has printed its URL; the caller stops it.
   async function serve(args: string[], cwd: string, env: Record<string, string>) {
     const proc = spawn(["board", "--no-open", ...args], { cwd, env });
-    const reader = proc.stdout.getReader();
-    const { value } = await reader.read();
-    reader.releaseLock();
-    const url = new TextDecoder().decode(value).match(/^Board: (\S+)$/m)?.[1];
-    if (!url) throw new Error("board did not print its URL");
-    return { proc, url };
+    try {
+      const { value } = await proc.stdout.getReader().read();
+      const url = new TextDecoder().decode(value).match(/^Board: (\S+)$/m)?.[1];
+      if (!url) throw new Error("board did not print its URL");
+      return { proc, url };
+    } catch (err) {
+      proc.kill();
+      throw err;
+    }
   }
 
   test("serves the board and exits 0 on SIGINT", async () => {
