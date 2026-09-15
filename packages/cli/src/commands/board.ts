@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { defineCommand } from "citty";
-import { createApp, type AppType } from "../../web/src/server/app.ts";
+import { createApp, type AppType } from "../../board/src/server/app.ts";
 import { act } from "../io.ts";
 import { distDir } from "../paths.ts";
 

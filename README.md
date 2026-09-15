@@ -145,7 +145,7 @@ See [docs/how-it-works.md](docs/how-it-works.md) for the state machine, note voc
 ```
 packages/store    Markdown + YAML store, store.next(), file watcher
 packages/cli      buildsmith CLI, prompt templates, plugin (skill + agents)
-packages/cli/web  Local board (Hono + React), read-only view of .buildsmith/
+packages/cli/board Local board (Hono + React), read-only view of .buildsmith/
 ```
 
 ## Status

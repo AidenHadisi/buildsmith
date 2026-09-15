@@ -69,7 +69,7 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 
 **Components**
 
-- **`packages/cli/web/`** — the Vite SPA and the Hono server, moved verbatim from `apps/web`
+- **`packages/cli/board/`** — the Vite SPA and the Hono server, moved verbatim from `apps/web`
   (`index.html`, `vite.config.ts`, `public/`, `src/client/**`, `src/server/app.ts` + test). Its own
   `tsconfig.json` (DOM lib, `@` alias) so the CLI's tsconfig stays Bun-only. Vite `outDir` is
   `packages/cli/dist`. `apps/web` and `@buildsmith/web` disappear; the CLI's `typecheck` runs both
@@ -96,7 +96,7 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 
 **Seams**
 
-- `board.ts` → `web/src/server/app.ts`: `createApp(store, distDir)` — unchanged signature.
+- `board.ts` → `board/src/server/app.ts`: `createApp(store, distDir)` — unchanged signature.
 - `board.ts`, `prompts.ts`, `setup.ts`, `brief.ts` → `paths.ts`: read-only path constants.
 - `build:bin` → `paths.ts`: the `--asset` basenames (`dist`, `prompts`, `plugin`) are the names
   `paths.ts` joins onto `pkgRoot`. Same names in both places, documented in `paths.ts`.
@@ -123,7 +123,7 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 
 ## Slices
 
-1. **Move the board into the CLI** — `apps/web` → `packages/cli/web`, tsconfigs, Vite outDir,
+1. **Move the board into the CLI** — `apps/web` → `packages/cli/board`, tsconfigs, Vite outDir,
    scripts, CI; `bun run dev|build|check|typecheck|test` green.
 2. **`buildsmith board`** — `paths.ts`, the command, port fallback, opener, SIGINT, error hints,
    `{{cli}}`; CLI tests; docs.
@@ -139,7 +139,7 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 - CLI tests spawn `bun src/main.ts` in a `mkdtemp` repo and assert stdout/stderr/exit —
   exemplar: `packages/cli/src/cli.test.ts` `run()`
 - Web server tests are in-process `app.request()` with a temp dist — exemplar:
-  `packages/cli/web/src/server/app.test.ts`
+  `packages/cli/board/src/server/app.test.ts`
 - Sidecar assets resolve from `import.meta.dir` — exemplar: `packages/cli/src/prompts.ts`
 - `.ts`/`.tsx` import extensions, `import type`, oxfmt defaults (double quotes, semicolons, 100).
 
@@ -166,7 +166,7 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 
 ## Slice log
 
-- Slice 1: `apps/web` → `packages/cli/web`; `@buildsmith/web` and the standalone
+- Slice 1: `apps/web` → `packages/cli/board`; `@buildsmith/web` and the standalone
   `src/server/index.ts` entry are gone. The CLI's `dev` script runs Vite only for now; slice 2 adds
   the `bun --watch src/main.ts board --no-open` half once the command exists.
 - Slice 2: `buildsmith board` (port fallback, opener, SIGINT/SIGTERM, `BUILDSMITH_DIST` test hook),

@@ -31,14 +31,14 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "bun run --parallel dev:web dev:server",
-    "dev:web": "vite --config web/vite.config.ts",
+    "dev": "bun run --parallel dev:board dev:server",
+    "dev:board": "vite --config board/vite.config.ts",
     "dev:server": "bun --watch src/main.ts board --no-open --port 3000",
-    "build": "vite build --config web/vite.config.ts",
+    "build": "vite build --config board/vite.config.ts",
     "build:bin": "bun run build && bun scripts/build-bin.ts",
     "start": "bun src/main.ts board",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p web"
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p board"
   },
   "dependencies": {
     "@buildsmith/store": "workspace:*",
