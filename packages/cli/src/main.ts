@@ -2,6 +2,7 @@
 import { defineCommand, renderUsage, runMain } from "citty";
 import { version } from "../package.json" with { type: "json" };
 import asset from "./commands/asset.ts";
+import board from "./commands/board.ts";
 import brief from "./commands/brief.ts";
 import doc from "./commands/doc.ts";
 import init from "./commands/init.ts";
@@ -24,7 +25,21 @@ const main = defineCommand({
   args: {
     json: { type: "boolean", description: "JSON output (default when stdout is not a TTY)" },
   },
-  subCommands: { init, next, step, brief, task, doc, slice, note, project, asset, prompt, setup },
+  subCommands: {
+    init,
+    next,
+    step,
+    brief,
+    task,
+    doc,
+    slice,
+    note,
+    project,
+    asset,
+    prompt,
+    setup,
+    board,
+  },
 });
 
 runMain(main, {

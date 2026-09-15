@@ -169,3 +169,6 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 - Slice 1: `apps/web` → `packages/cli/web`; `@buildsmith/web` and the standalone
   `src/server/index.ts` entry are gone. The CLI's `dev` script runs Vite only for now; slice 2 adds
   the `bun --watch src/main.ts board --no-open` half once the command exists.
+- Slice 2: `buildsmith board` (port fallback, opener, SIGINT/SIGTERM, `BUILDSMITH_DIST` test hook),
+  `src/paths.ts` for prompts/plugin/dist, `{{cli}}` binary-aware, `no .buildsmith` hint in `io.ts`,
+  `dev` runs Vite + watched server via `bun run --parallel`, root `start`.

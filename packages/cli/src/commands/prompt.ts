@@ -2,7 +2,8 @@ import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { defineCommand } from "citty";
 import { act } from "../io.ts";
-import { BUILT_IN, actions, repoPath, resolve } from "../prompts.ts";
+import { promptsDir } from "../paths.ts";
+import { actions, repoPath, resolve } from "../prompts.ts";
 
 const list = defineCommand({
   meta: { name: "list", description: "List prompt templates and where each resolves from" },
@@ -56,7 +57,7 @@ const diff = defineCommand({
       console.log(`no override for ${args.action}`);
       return;
     }
-    const proc = Bun.spawn(["diff", "-u", join(BUILT_IN, `${args.action}.md`), path], {
+    const proc = Bun.spawn(["diff", "-u", join(promptsDir, `${args.action}.md`), path], {
       stdout: "inherit",
       stderr: "inherit",
     });

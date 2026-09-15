@@ -21,7 +21,7 @@ Skills and prompt files help, but they are advice. Nothing stops an agent from d
 Buildsmith moves the process out of the agent's head and into a small state machine over markdown files.
 
 - **The board is the state.** A task is a folder under `.buildsmith/` with `spec.md`, `architecture.md`, slices, notes and a verification doc. Status lives in frontmatter. It's git-friendly, diffable and human-readable.
-- **`next()` derives the due step** from those files. A spec in `draft` needs critique. A critic note saying `better-design` sends it back for rewrite. A slice in `review` needs a code review. There is no "skip".
+- **`store.next()` derives the due step** from those files. A spec in `draft` needs critique. A critic note saying `better-design` sends it back for rewrite. A slice in `review` needs a code review. There is no "skip".
 - **Every role gets a brief.** `buildsmith brief <id>` renders the prompt for whatever is due: the task, the relevant docs, the prior notes, the judgment standard, and the exact commands to record the outcome. Fresh subagents, one per step, each with full context and no memory of the last one.
 - **Roles record their own verdicts** through the CLI. A critic writes `note add --verdict holds` and advances the doc; a coder marks its slice `review` with a commit sha; a reviewer marks it `done` or sends it back. The board only moves when someone with that role says so.
 - **Humans gate what matters.** You approve the spec and the architecture. Everything between is agents pressure-testing each other's work.
@@ -90,8 +90,10 @@ buildsmith task create --title "Invoice PDF export" \
 Then ask your agent to run the `buildsmith` skill on that task. It will interview you for the spec, run the critique loop, ask you to approve, design the architecture, run that loop, ask again, and build. Watch it on the board:
 
 ```sh
-bun run dev                          # http://localhost:5173, from the buildsmith checkout
+buildsmith board                     # serves this repo's board on http://127.0.0.1:3000 and opens it
 ```
+
+`--port <n>` picks the port (a taken port falls back to a free one); `--no-open` skips the browser. Ctrl-C stops it.
 
 Everything is also a CLI command, so you can drive or inspect any step by hand:
 
@@ -130,7 +132,7 @@ See [docs/how-it-works.md](docs/how-it-works.md) for the state machine, note voc
 ## Layout
 
 ```
-packages/store    Markdown + YAML store, next(), file watcher
+packages/store    Markdown + YAML store, store.next(), file watcher
 packages/cli      buildsmith CLI, prompt templates, plugin (skill + agents)
 packages/cli/web  Local board (Hono + React), read-only view of .buildsmith/
 ```

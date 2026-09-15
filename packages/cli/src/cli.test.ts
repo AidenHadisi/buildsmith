@@ -12,14 +12,20 @@ afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
-async function run(args: string[], opts: { cwd: string; stdin?: string }) {
-  const proc = Bun.spawn(["bun", main, ...args], {
+type Opts = { cwd: string; stdin?: string; env?: Record<string, string> };
+
+function spawn(args: string[], opts: Opts) {
+  return Bun.spawn(["bun", main, ...args], {
     cwd: opts.cwd,
     stdin: opts.stdin === undefined ? "ignore" : new Blob([opts.stdin]),
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, NO_COLOR: "1" },
+    env: { ...process.env, NO_COLOR: "1", ...opts.env },
   });
+}
+
+async function run(args: string[], opts: Opts) {
+  const proc = spawn(args, opts);
   const [stdout, stderr, code] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
@@ -60,6 +66,7 @@ describe("help", () => {
       "project",
       "asset",
       "prompt",
+      "board",
     ]) {
       expect(stdout).toContain(group);
     }
@@ -580,6 +587,74 @@ describe("prompt commands", () => {
     expect(code).toBe(0);
     expect(stdout).toContain("+EDITED LINE");
     expect(stdout).toMatch(/^-/m);
+  });
+});
+
+describe("board command", () => {
+  async function dist() {
+    const dir = await tmp();
+    await Bun.write(join(dir, "index.html"), "<!doctype html><title>stub</title>");
+    return dir;
+  }
+
+  async function tasks(url: string) {
+    const board = (await (await fetch(`${url}/api/board`)).json()) as { tasks: unknown[] };
+    return board.tasks;
+  }
+
+  // Starts the server and resolves once it has printed its URL; the caller stops it.
+  async function serve(args: string[], cwd: string, env: Record<string, string>) {
+    const proc = spawn(["board", "--no-open", ...args], { cwd, env });
+    const reader = proc.stdout.getReader();
+    const { value } = await reader.read();
+    reader.releaseLock();
+    const url = new TextDecoder().decode(value).match(/^Board: (\S+)$/m)?.[1];
+    if (!url) throw new Error("board did not print its URL");
+    return { proc, url };
+  }
+
+  test("serves the board and exits 0 on SIGINT", async () => {
+    const { dir } = await setup();
+    const { proc, url } = await serve(["--port", "0"], dir, { BUILDSMITH_DIST: await dist() });
+    expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+    expect(await tasks(url)).toHaveLength(2);
+    expect(await (await fetch(`${url}/`)).text()).toContain("stub");
+    proc.kill("SIGINT");
+    expect(await proc.exited).toBe(0);
+  });
+
+  test("missing dist exits 1 and names bun run build", async () => {
+    const { dir } = await setup();
+    const { stderr, code } = await run(["board", "--no-open"], {
+      cwd: dir,
+      env: { BUILDSMITH_DIST: await tmp() },
+    });
+    expect(code).toBe(1);
+    expect(stderr).toContain("bun run build");
+  });
+
+  test("no .buildsmith exits 1 and names buildsmith init", async () => {
+    const { stderr, code } = await run(["board", "--no-open"], { cwd: await tmp() });
+    expect(code).toBe(1);
+    expect(stderr).toContain("buildsmith init");
+  });
+
+  test("a taken port falls back to a free one", async () => {
+    const { dir } = await setup();
+    const held = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
+    try {
+      const { proc, url } = await serve(["--port", String(held.port)], dir, {
+        BUILDSMITH_DIST: await dist(),
+      });
+      expect(url).not.toBe(held.url.origin);
+      expect(await tasks(url)).toHaveLength(2);
+      proc.kill("SIGINT");
+      const [stderr, code] = await Promise.all([new Response(proc.stderr).text(), proc.exited]);
+      expect(code).toBe(0);
+      expect(stderr).toContain(`port ${held.port} in use`);
+    } finally {
+      held.stop(true);
+    }
   });
 });
 

@@ -10,7 +10,7 @@ export const SLICE_PICK: Record<string, (slice: SliceRecord) => boolean> = {
   "unblock-slice": (s) => s.status === "blocked",
 };
 
-export const cli = `bun ${Bun.main}`;
+export const cli = Bun.isStandaloneExecutable ? process.execPath : `bun ${Bun.main}`;
 
 export async function renderBrief(
   store: Store,

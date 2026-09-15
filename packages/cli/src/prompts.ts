@@ -2,8 +2,7 @@ import { parseYaml, splitFrontmatter } from "@buildsmith/store";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { asEnum } from "./io.ts";
-
-export const BUILT_IN = join(import.meta.dir, "../prompts");
+import { promptsDir } from "./paths.ts";
 
 export const ROLES = [
   "planner",
@@ -23,7 +22,7 @@ export type Prompt = {
 };
 
 export async function actions(): Promise<string[]> {
-  const names = await readdir(BUILT_IN);
+  const names = await readdir(promptsDir);
   return names
     .filter((name) => name.endsWith(".md"))
     .map((name) => name.slice(0, -".md".length))
@@ -38,7 +37,7 @@ export async function resolve(root: string, action: string) {
   if (!(await actions()).includes(action)) throw new Error(`unknown action ${action}`);
   const repo = repoPath(root, action);
   if (await Bun.file(repo).exists()) return { source: "repo" as const, path: repo };
-  return { source: "built-in" as const, path: join(BUILT_IN, `${action}.md`) };
+  return { source: "built-in" as const, path: join(promptsDir, `${action}.md`) };
 }
 
 export async function load(path: string): Promise<Prompt> {

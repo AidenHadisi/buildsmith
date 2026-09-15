@@ -3,9 +3,9 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { defineCommand } from "citty";
 import { asEnum, guard } from "../io.ts";
+import { pluginDir } from "../paths.ts";
 
 const HOSTS = ["cursor", "claude", "codex"] as const;
-const PLUGIN = join(import.meta.dir, "../../plugin");
 type Host = (typeof HOSTS)[number];
 type Status = "done" | "printed" | "dry-run";
 type Step = { host: Host; action: string; status: Status };
@@ -39,11 +39,11 @@ async function setup(names: string[], dry: boolean): Promise<Step[]> {
       if (!dry) {
         await mkdir(dirname(dest), { recursive: true });
         await rm(dest, { recursive: true, force: true });
-        await cp(PLUGIN, dest, { recursive: true });
+        await cp(pluginDir, dest, { recursive: true });
       }
       steps.push({
         host,
-        action: `copy ${PLUGIN} -> ${dest}`,
+        action: `copy ${pluginDir} -> ${dest}`,
         status: dry ? "dry-run" : "done",
       });
     } else {
@@ -61,7 +61,7 @@ async function setup(names: string[], dry: boolean): Promise<Step[]> {
         });
       }
       if (host !== "codex") continue;
-      const src = join(PLUGIN, "codex/buildsmith-worker.toml");
+      const src = join(pluginDir, "codex/buildsmith-worker.toml");
       const dest = join(home, ".codex/agents/buildsmith-worker.toml");
       if (!dry) {
         await mkdir(dirname(dest), { recursive: true });

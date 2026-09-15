@@ -19,7 +19,10 @@ export function guard<T extends ArgsDef>(
       print(await fn(args));
     } catch (err) {
       if (!(err instanceof Error)) throw err;
-      console.error(json ? JSON.stringify({ error: err.message }) : err.message);
+      const message = err.message.startsWith("no .buildsmith")
+        ? `${err.message} — run \`buildsmith init\``
+        : err.message;
+      console.error(json ? JSON.stringify({ error: message }) : message);
       process.exitCode = 1;
     }
   };

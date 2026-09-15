@@ -31,8 +31,11 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "vite --config web/vite.config.ts",
+    "dev": "bun run --parallel dev:web dev:server",
+    "dev:web": "vite --config web/vite.config.ts",
+    "dev:server": "bun --watch src/main.ts board --no-open --port 3000",
     "build": "vite build --config web/vite.config.ts",
+    "start": "bun src/main.ts board",
     "test": "bun test",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p web"
   },
