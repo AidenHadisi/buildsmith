@@ -170,7 +170,7 @@ Shared fragments eject the same way: `standards/spec` and `standards/design` hol
 
 ### Models and columns
 
-Templates name a tier, `strong` or `fast`. Both must be mapped to a model id in `.buildsmith/config.yml`; `init` writes a starting pair, and you change them to whatever your agent host understands:
+Dispatched templates name a tier, `strong` or `fast`. Both default to `inherit`, so subagents run on whatever model your agent is using. Pin either tier to a model id your host understands, once for you in `~/.config/buildsmith/config.yml` (or `$XDG_CONFIG_HOME/buildsmith/config.yml`) or per repo in `.buildsmith/config.yml`. Every key is optional; the repo file wins over the user file, key by key.
 
 ```yaml
 models:

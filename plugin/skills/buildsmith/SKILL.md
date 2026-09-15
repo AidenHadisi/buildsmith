@@ -33,12 +33,12 @@ The first `step` is `write-project` until `.buildsmith/project.md` has real cont
 
 Run `buildsmith step <id>` and act on `do`. Repeat until `done`.
 
-| `do`       | What you do                                                                                                                                                                                                                 |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `self`     | Follow `text`. It is written for you and says when to talk to the user and which commands to run at the end.                                                                                                                |
-| `dispatch` | Spawn one generic subagent with model `model` and exactly `prompt` as its instructions. Add nothing. If `readonly` is true, it must not edit the repo — read-only tools only. If false, it may edit. When it returns, loop. |
-| `ask`      | Show `text` to the user and stop; they decide how to continue.                                                                                                                                                              |
-| `done`     | Summarize `buildsmith task get <id>` and stop.                                                                                                                                                                              |
+| `do`       | What you do                                                                                                                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `self`     | Follow `text`. It is written for you and says when to talk to the user and which commands to run at the end.                                                                                                                                                                                            |
+| `dispatch` | Spawn one generic subagent with exactly `prompt` as its instructions. Add nothing. Set its model to `model`; if `model` is `inherit`, leave the model unset so it runs on yours. If `readonly` is true, it must not edit the repo — read-only tools only. If false, it may edit. When it returns, loop. |
+| `ask`      | Show `text` to the user and stop; they decide how to continue.                                                                                                                                                                                                                                          |
+| `done`     | Summarize `buildsmith task get <id>` and stop.                                                                                                                                                                                                                                                          |
 
 If the user gives feedback on the spec or architecture at any point, record it — `buildsmith note add <id> --author user --target <spec|architecture> --verdict needs-changes` with their words on stdin — and loop; the board sends the doc back to you.
 

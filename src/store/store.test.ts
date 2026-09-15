@@ -587,12 +587,32 @@ describe("repo", () => {
     expect(() => findRoot(dir)).toThrow("no .buildsmith");
   });
 
-  test("config models round-trip", async () => {
+  test("config layers built-in defaults, the user file, then the repo file", async () => {
     const { root } = await setup();
-    await writeFile(join(root, "config.yml"), "models:\n  strong: my-strong\n  fast: my-fast\n");
-    expect(loadConfig(root).models).toEqual({ strong: "my-strong", fast: "my-fast" });
+    const xdg = await mkdtemp(join(tmpdir(), "buildsmith-xdg-"));
+    dirs.push(xdg);
+    process.env.XDG_CONFIG_HOME = xdg;
 
-    await writeFile(join(root, "config.yml"), "models:\n  strong: my-strong\n");
-    expect(() => loadConfig(root)).toThrow("models.strong and models.fast are required");
+    expect(loadConfig(root)).toEqual({
+      columns: ["backlog", "planning", "building", "review", "done"],
+      models: { strong: "inherit", fast: "inherit" },
+    });
+
+    const user = join(xdg, "buildsmith", "config.yml");
+    await mkdir(join(xdg, "buildsmith"));
+    await writeFile(user, "models:\n  fast: user-fast\ncolumns: [todo, done]\n");
+    expect(loadConfig(root)).toEqual({
+      columns: ["backlog", "planning", "building", "review", "done"],
+      models: { strong: "inherit", fast: "user-fast" },
+    });
+
+    await writeFile(join(root, "config.yml"), "models:\n  strong: repo-strong\n");
+    expect(loadConfig(root)).toEqual({
+      columns: ["todo", "done"],
+      models: { strong: "repo-strong", fast: "user-fast" },
+    });
+
+    await writeFile(user, "models: [bad]\n");
+    expect(() => loadConfig(root)).toThrow(`invalid ${user} (models)`);
   });
 });

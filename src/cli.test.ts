@@ -7,6 +7,9 @@ import { createTask, findRoot, getTask, init, writeProject } from "./store/index
 const main = join(import.meta.dir, "main.ts");
 const dirs: string[] = [];
 
+// Keep a real user config out of the tests; the layer under test is written per-test.
+process.env.XDG_CONFIG_HOME = await mkdtemp(join(tmpdir(), "buildsmith-xdg-"));
+
 afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
@@ -402,7 +405,7 @@ describe("step command", () => {
     expect(res.do).toBe("dispatch");
     expect(res.action).toBe("write-project");
     expect(res.readonly).toBe(false);
-    expect(res.model).toBe("claude-opus-5-high");
+    expect(res.model).toBe("inherit");
     expect(res.prompt).toContain(`brief ${task.id}`);
   });
 
@@ -413,17 +416,25 @@ describe("step command", () => {
     expect(res.do).toBe("dispatch");
     expect(res.action).toBe("review-spec");
     expect(res.readonly).toBe(true);
-    expect(res.model).toBe("claude-opus-5-high");
+    expect(res.model).toBe("inherit");
     expect(res.prompt).toContain(`brief ${a.id}`);
 
-    const config = join(dir, ".buildsmith", "config.yml");
-    await Bun.write(config, "models:\n  strong: my-strong-model\n  fast: my-fast-model\n");
-    expect((await step(dir, a.id)).model).toBe("my-strong-model");
+    const userDir = join(process.env.XDG_CONFIG_HOME!, "buildsmith");
+    dirs.push(userDir);
+    await Bun.write(join(userDir, "config.yml"), "models:\n  strong: user-strong\n");
+    expect((await step(dir, a.id)).model).toBe("user-strong");
 
-    await Bun.write(config, "columns: [backlog]\n");
+    const config = join(dir, ".buildsmith", "config.yml");
+    await Bun.write(config, "models:\n  strong: repo-strong\n");
+    const brief = await run(["brief", a.id], { cwd: dir });
+    expect(JSON.parse(brief.stdout).model).toBe("repo-strong");
+
+    await Bun.write(config, "models: [bad]\n");
     const { code, stderr } = await run(["step", a.id], { cwd: dir });
     expect(code).toBe(1);
-    expect(stderr).toContain("models.strong and models.fast are required");
+    expect(stderr).toContain(
+      `invalid ${join(await realpath(dir), ".buildsmith", "config.yml")} (models)`,
+    );
   });
 
   test("an unchanged board nudges once, then asks, then clears after a change", async () => {
@@ -500,7 +511,7 @@ describe("brief command", () => {
     const brief = JSON.parse(stdout);
     expect(brief.action).toBe("review-spec");
     expect(brief.run).toBe("dispatch");
-    expect(brief.model).toBe("claude-opus-5-high");
+    expect(brief.model).toBe("inherit");
     expect(brief.readonly).toBe(true);
     expect(brief.text).toContain("The spec body.");
     expect(brief.text).toContain("Two implementers would build the same thing");
@@ -534,7 +545,7 @@ describe("brief command", () => {
     const { stdout, code } = await run(["brief", a.id], { cwd: dir });
     expect(code).toBe(0);
     const brief = JSON.parse(stdout);
-    expect(brief.model).toBe("cursor-grok-4.6-high");
+    expect(brief.model).toBe("inherit");
     expect(brief.text.trim()).toBe("CUSTOM Task A");
   });
 

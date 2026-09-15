@@ -7,16 +7,7 @@ import {
   type TaskRecord,
 } from "./store/index.ts";
 import { join } from "node:path";
-import {
-  actions,
-  load,
-  render,
-  repoPath,
-  resolve,
-  snippet,
-  standard,
-  type Prompt,
-} from "./prompts.ts";
+import { actions, load, render, repoPath, resolve, snippet, standard } from "./prompts.ts";
 
 export type Brief =
   | { run: "self"; text: string }
