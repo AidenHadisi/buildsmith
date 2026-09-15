@@ -31,6 +31,7 @@
   "scripts": {
     "dev": "bun run --filter @buildsmith/cli dev",
     "build": "bun run --filter @buildsmith/cli build",
+    "build:bin": "bun run --filter @buildsmith/cli build:bin",
     "start": "bun run --filter @buildsmith/cli start",
     "check": "oxlint && oxfmt --check",
     "lint": "oxlint .",

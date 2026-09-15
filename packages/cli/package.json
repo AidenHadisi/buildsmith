@@ -35,6 +35,7 @@
     "dev:web": "vite --config web/vite.config.ts",
     "dev:server": "bun --watch src/main.ts board --no-open --port 3000",
     "build": "vite build --config web/vite.config.ts",
+    "build:bin": "bun run build && bun scripts/build-bin.ts",
     "start": "bun src/main.ts board",
     "test": "bun test",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p web"

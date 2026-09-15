@@ -172,3 +172,7 @@ mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
 - Slice 2: `buildsmith board` (port fallback, opener, SIGINT/SIGTERM, `BUILDSMITH_DIST` test hook),
   `src/paths.ts` for prompts/plugin/dist, `{{cli}}` binary-aware, `no .buildsmith` hint in `io.ts`,
   `dev` runs Vite + watched server via `bun run --parallel`, root `start`.
+- Slice 3: `packages/cli/scripts/build-bin.ts` compiles `release/buildsmith` (host) or
+  `release/buildsmith-<os>-<arch>[.exe]` with `--target`; `build:bin` (CLI + root) runs the SPA
+  build first; `release.yml` cross-compiles the five targets on `v*` tags and attaches them with
+  `softprops/action-gh-release`; `release/` ignored; README gains the binary install route.

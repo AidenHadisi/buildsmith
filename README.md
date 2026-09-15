@@ -60,7 +60,16 @@ verify        write plan → run live → pass | fail (adds a fix slice)
 
 ## Install
 
-Requires [Bun](https://bun.sh) 1.4.2+. Not on npm yet; link from source:
+Not on npm yet. Either download a binary or link from source.
+
+**Binary.** Grab the one for your platform from [Releases](https://github.com/AidenHadisi/buildsmith/releases) (macOS arm64/x64, Linux x64/arm64, Windows x64):
+
+```sh
+chmod +x buildsmith-darwin-arm64
+mv buildsmith-darwin-arm64 /usr/local/bin/buildsmith     # anywhere on PATH; on Windows keep the .exe
+```
+
+**From source.** Requires [Bun](https://bun.sh) 1.4.2+:
 
 ```sh
 git clone https://github.com/AidenHadisi/buildsmith && cd buildsmith
