@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import * as z from "zod";
 import { StoreError } from "./errors.ts";
-import { record, stringifyRecord, write } from "./files.ts";
+import { nonEmpty, record, stringifyRecord, write } from "./files.ts";
 import { parseSlices, seedSlices } from "./slices.ts";
 import { taskDir } from "./tasks.ts";
 
@@ -36,6 +36,7 @@ const toDoc = (kind: DocKind, rec: { data: DocFrontmatter; body: string }): Task
 });
 
 export async function writeDoc(root: string, taskId: string, kind: DocKind, body: string) {
+  nonEmpty(body);
   const path = await docPath(root, taskId, kind);
   const file = record(path, docSchema);
   const out = await write(path, (raw) => {

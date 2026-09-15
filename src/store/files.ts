@@ -2,6 +2,7 @@ import { mkdir, open, readdir, readFile, rename, rm, stat } from "node:fs/promis
 import { dirname, join, resolve } from "node:path";
 import { Document, parseDocument } from "yaml";
 import type { z } from "zod";
+import { StoreError } from "./errors.ts";
 
 export const BUILD_DIR = ".buildsmith";
 export { parse as parseYaml } from "yaml";
@@ -189,6 +190,11 @@ export function splitSections(md: string): { preamble: string; sections: Section
   }
   if (heading !== null) sections.push({ heading, body: trimSectionBody(body) });
   return { preamble: trimSectionBody(preamble), sections };
+}
+
+export function nonEmpty(body: string): string {
+  if (!body.trim()) throw new StoreError("invalid_input", "empty body");
+  return body;
 }
 
 export function slugify(title: string, max = 48): string {

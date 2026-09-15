@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import * as z from "zod";
-import { listDir, record, slugify } from "./files.ts";
+import { listDir, nonEmpty, record, slugify } from "./files.ts";
 import { taskDir } from "./tasks.ts";
 
 const noteSchema = z.looseObject({
@@ -18,6 +18,7 @@ export async function addNote(
   input: { author: string; target: string; verdict?: string; body: string },
 ) {
   const { author, target, verdict, body } = input;
+  nonEmpty(body);
   const notesDir = join(await taskDir(root, taskId), "notes");
   await mkdir(notesDir, { recursive: true });
   const at = new Date().toISOString();

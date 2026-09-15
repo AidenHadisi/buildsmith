@@ -9,7 +9,6 @@ import {
   writeDoc,
 } from "../store/index.ts";
 import { defineCommand } from "citty";
-import { body } from "./stdin.ts";
 
 const write = defineCommand({
   meta: { name: "write", description: "Write a task document" },
@@ -26,7 +25,7 @@ const write = defineCommand({
     if (kind !== "spec" && kind !== "architecture" && kind !== "verification") {
       throw new Error(`invalid kind ${kind}: expected spec|architecture|verification`);
     }
-    return writeDoc(findRoot(), args.id, kind, await body());
+    return writeDoc(findRoot(), args.id, kind, await Bun.stdin.text());
   },
 });
 

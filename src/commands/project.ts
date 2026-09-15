@@ -1,6 +1,5 @@
 import { addLesson, findRoot, readProject, writeProject } from "../store/index.ts";
 import { defineCommand } from "citty";
-import { body } from "./stdin.ts";
 
 const read = defineCommand({
   meta: { name: "read", description: "Read the project document" },
@@ -9,14 +8,12 @@ const read = defineCommand({
 
 const write = defineCommand({
   meta: { name: "write", description: "Overwrite the project document" },
-  args: {},
-  run: async ({ args }) => writeProject(findRoot(), await body()),
+  run: async () => writeProject(findRoot(), await Bun.stdin.text()),
 });
 
 const lesson = defineCommand({
   meta: { name: "lesson", description: "Append a lesson to the project document" },
-  args: {},
-  run: async ({ args }) => addLesson(findRoot(), await body()),
+  run: async () => addLesson(findRoot(), await Bun.stdin.text()),
 });
 
 export default defineCommand({

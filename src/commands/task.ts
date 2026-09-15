@@ -1,7 +1,6 @@
 import { createTask, findRoot, getTask, listTasks, moveTask, updateTask } from "../store/index.ts";
 import { defineCommand } from "citty";
 import { next } from "../pipeline.ts";
-import { piped } from "./stdin.ts";
 
 const create = defineCommand({
   meta: {
@@ -17,7 +16,7 @@ const create = defineCommand({
     createTask(findRoot(), {
       id: args.id,
       title: args.title,
-      description: args.description ?? (await piped()),
+      description: args.description ?? (await Bun.stdin.text()),
     }),
 });
 

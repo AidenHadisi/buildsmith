@@ -1,6 +1,5 @@
 import { addNote, findRoot, listNotes } from "../store/index.ts";
 import { defineCommand } from "citty";
-import { body } from "./stdin.ts";
 
 const add = defineCommand({
   meta: { name: "add", description: "Add a note to a task" },
@@ -15,7 +14,7 @@ const add = defineCommand({
       author: args.author,
       target: args.target,
       verdict: args.verdict,
-      body: await body(),
+      body: await Bun.stdin.text(),
     }),
 });
 

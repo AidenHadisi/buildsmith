@@ -7,6 +7,7 @@ import { StoreError } from "./errors.ts";
 import {
   BUILD_DIR,
   errCode,
+  nonEmpty,
   parseYaml,
   readOptional,
   splitSections,
@@ -128,12 +129,13 @@ export async function readProject(root: string) {
 }
 
 export async function writeProject(root: string, body: string) {
+  nonEmpty(body);
   await write(join(root, "project.md"), body.endsWith("\n") ? body : `${body}\n`);
 }
 
 export async function addLesson(root: string, text: string) {
   const path = join(root, "project.md");
-  const lesson = `- ${text.trim()}`;
+  const lesson = `- ${nonEmpty(text).trim()}`;
   await write(path, (raw) => {
     if (raw === null) throw new StoreError("not_found", `missing ${path}`);
     const { preamble, sections } = splitSections(raw);
