@@ -4,12 +4,11 @@ import {
   listNotes,
   listSlices,
   listTasks,
-  loadConfig,
   readDoc,
   StoreError,
   watch,
 } from "../../../src/store/index.ts";
-import { next } from "../../../src/pipeline.ts";
+import { COLUMNS, next } from "../../../src/pipeline.ts";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
@@ -21,7 +20,7 @@ export function createApp(root: string, distDir: string) {
       const tasks = await Promise.all(
         list.map(async (task) => ({ ...task, next: await next(root, task.id) })),
       );
-      return c.json({ columns: loadConfig(root).columns, tasks });
+      return c.json({ columns: COLUMNS, tasks });
     })
     .get("/api/tasks/:id", async (c) => {
       const task = await getTask(root, c.req.param("id"));
