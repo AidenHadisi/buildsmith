@@ -69,11 +69,13 @@ chmod +x buildsmith-darwin-arm64
 mv buildsmith-darwin-arm64 /usr/local/bin/buildsmith     # anywhere on PATH; on Windows keep the .exe
 ```
 
+The binaries are not code-signed; if macOS refuses to run one downloaded through a browser, clear the quarantine flag with `xattr -d com.apple.quarantine /usr/local/bin/buildsmith`.
+
 **From source.** Requires [Bun](https://bun.sh) 1.4.2+:
 
 ```sh
 git clone https://github.com/AidenHadisi/buildsmith && cd buildsmith
-bun install
+bun install && bun run build         # builds the board UI
 cd packages/cli && bun link          # `buildsmith` on PATH
 ```
 
