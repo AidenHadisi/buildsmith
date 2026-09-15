@@ -100,20 +100,17 @@ function freeze(text: string): string {
     .replace(/\r\n/g, "\n");
 }
 
+// Raw task.md access, bypassing the task schema so tests can plant any frontmatter.
+const taskMd = (dir: string) => record(join(dir, "task.md"), z.looseObject({}));
+
 describe("tasks", () => {
   test("create, get, list, update", async () => {
     const { root } = await setup();
-    const a = await createTask(root, {
-      title: "Ship store",
-      description: "Own the files.",
-    });
-    expect(a).toMatchObject({
-      id: "ship-store",
-    });
+    const a = await createTask(root, { title: "Ship store", description: "Own the files." });
+    expect(a).toMatchObject({ id: "ship-store" });
     expect(await getTask(root, a.id)).toMatchObject({ title: "Ship store" });
 
     const b = await createTask(root, { title: "Second", description: "Another" });
-    const taskMd = (dir: string) => record(join(dir, "task.md"), z.looseObject({}));
     await taskMd(a.dir).patch({ updatedAt: "2026-01-01T00:00:00.000Z" });
     await taskMd(b.dir).patch({ updatedAt: "2026-01-02T00:00:00.000Z" });
     expect((await listTasks(root)).map((t) => t.id)).toEqual([b.id, a.id]);
@@ -190,7 +187,7 @@ Updated.
     const { root } = await setup();
     const dir = join(root, "tasks", "stale-task");
     await mkdir(dir, { recursive: true });
-    await record(join(dir, "task.md"), z.looseObject({})).create(
+    await taskMd(dir).create(
       {
         id: "stale-task",
         title: "Stale",

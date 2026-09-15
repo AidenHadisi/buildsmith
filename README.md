@@ -148,7 +148,7 @@ Caps turn into `ask` so a loop cannot run forever: a document at revision 5, a b
 
 `buildsmith board` serves a read-only view of `.buildsmith/` on localhost and opens it in your browser. It refreshes live as files change.
 
-- **Columns** derived from each task's pipeline stage — backlog until a spec exists, then planning, building, review, done — each card showing its next action, stage, and any blocked slices or pending question.
+- **Columns** follow each task's pipeline stage: backlog until a spec exists, then planning, building, review, done. Each card shows its next action, stage, and any blocked slices or pending question.
 - **Task sheet** with tabs for the spec, architecture, verification, slices with progress, and every note with its verdict.
 - `--port <n>` picks the port and falls back to a free one; `--no-open` only prints the URL.
 
