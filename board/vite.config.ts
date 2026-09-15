@@ -6,7 +6,7 @@ export default defineConfig({
   root: import.meta.dirname,
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": `${import.meta.dirname}/src/client` },
+    alias: { "@": import.meta.dirname },
   },
   build: {
     outDir: "../dist",

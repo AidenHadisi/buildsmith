@@ -1,5 +1,5 @@
 import { hc, type InferResponseType } from "hono/client";
-import type { AppType } from "../server/app.ts";
+import type { AppType } from "../src/board/app.ts";
 
 export const api = hc<AppType>("/");
 

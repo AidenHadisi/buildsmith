@@ -26,7 +26,6 @@
     "buildsmith": "src/main.ts"
   },
   "files": [
-    "board/src/server/app.ts",
     "dist",
     "plugin",
     "prompts",

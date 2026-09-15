@@ -10,7 +10,8 @@ import {
   putAsset,
   writeDoc,
   writeProject,
-} from "../../../src/store/index.ts";
+} from "../store/index.ts";
+import { testClient } from "hono/testing";
 import { createApp } from "./app.ts";
 
 const dirs: string[] = [];
@@ -44,19 +45,19 @@ async function setup() {
 describe("app", () => {
   test("GET /api/board returns columns and tasks with next", async () => {
     const { app, task } = await setup();
-    const res = await app.request("/api/board");
+    const res = await testClient(app).api.board.$get();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.columns).toEqual(["backlog", "planning", "building", "review", "done"]);
     expect(body.tasks).toHaveLength(1);
-    expect(body.tasks[0].id).toBe(task.id);
-    expect(body.tasks[0].next).toMatchObject({ stage: "spec", action: "review-spec" });
-    expect(body.tasks[0].next.ask).toBeUndefined();
+    expect(body.tasks[0]?.id).toBe(task.id);
+    expect(body.tasks[0]?.next).toMatchObject({ stage: "spec", action: "review-spec" });
+    expect(body.tasks[0]?.next.ask).toBeUndefined();
   });
 
   test("GET /api/tasks/:id returns the full detail shape", async () => {
     const { app, task } = await setup();
-    const res = await app.request(`/api/tasks/${task.id}`);
+    const res = await testClient(app).api.tasks[":id"].$get({ param: { id: task.id } });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.task.title).toBe("Board");
@@ -71,10 +72,10 @@ describe("app", () => {
   test("GET /api/board includes next.ask when a cap is hit", async () => {
     const { app, root, task } = await setup();
     for (let i = 0; i < 4; i++) await writeDoc(root, task.id, "spec", `# Spec ${i}\n`);
-    const res = await app.request("/api/board");
+    const res = await testClient(app).api.board.$get();
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.tasks[0].next).toMatchObject({
+    expect(body.tasks[0]?.next).toMatchObject({
       action: "review-spec",
       ask: expect.stringContaining("revision 5"),
     });

@@ -1,7 +1,7 @@
 import { findRoot } from "../store/index.ts";
 import { join } from "node:path";
 import { defineCommand } from "citty";
-import { createApp, type AppType } from "../../board/src/server/app.ts";
+import { createApp, type AppType } from "../board/app.ts";
 import { distDir } from "../paths.ts";
 
 export default defineCommand({

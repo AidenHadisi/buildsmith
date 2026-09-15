@@ -7,8 +7,8 @@ import {
   readDoc,
   StoreError,
   watch,
-} from "../../../src/store/index.ts";
-import { COLUMNS, next } from "../../../src/pipeline.ts";
+} from "../store/index.ts";
+import { COLUMNS, next } from "../pipeline.ts";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { streamSSE } from "hono/streaming";
