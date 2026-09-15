@@ -43,23 +43,23 @@ board, and a pushed `v*` tag produces five binaries on a GitHub Release.
 
 ## Acceptance criteria
 
-- [ ] Board for the current repo — proof: `cd /tmp/bs-demo && buildsmith board --no-open` prints
+- [x] Board for the current repo — proof: `cd /tmp/bs-demo && buildsmith board --no-open` prints
       `http://127.0.0.1:3000`; `curl /api/board` lists that repo's 6 tasks; `curl /` returns the
       SPA `index.html`; Ctrl-C exits 0.
-- [ ] Opens the browser — proof: without `--no-open`, the board tab appears (screenshot) and the
+- [x] Opens the browser — proof: without `--no-open`, the board tab appears (screenshot) and the
       command stays in the foreground.
-- [ ] Port fallback — proof: with 3000 held by another process, `buildsmith board --no-open` prints
+- [x] Port fallback — proof: with 3000 held by another process, `buildsmith board --no-open` prints
       a different port and serves there; `--port 4100` binds exactly 4100.
-- [ ] Clear errors — proof: in a dir with no `.buildsmith/` up the tree: exit 1, stderr names
+- [x] Clear errors — proof: in a dir with no `.buildsmith/` up the tree: exit 1, stderr names
       `buildsmith init`. With `packages/cli/dist` removed: exit 1, stderr names `bun run build`.
-- [ ] Dev flow intact — proof: `bun run dev` serves Vite on 5173 proxying to the board server;
+- [x] Dev flow intact — proof: `bun run dev` serves Vite on 5173 proxying to the board server;
       `bun run build && bun run check && bun run typecheck && bun test` all green.
-- [ ] Single binary — proof: `bun run build:bin` writes `release/buildsmith-<os>-<arch>`; from
+- [x] Single binary — proof: `bun run build:bin` writes `release/buildsmith-<os>-<arch>`; from
       `/tmp/bs-demo` with Bun removed from `PATH`, `./buildsmith board --no-open --port 0` serves
       `/api/board` and the embedded `index.html` + a hashed asset; `./buildsmith brief <id>`
       renders `{{cli}}` as the binary path; `./buildsmith prompt list` and
       `./buildsmith setup cursor --dry-run` work.
-- [ ] Release workflow — proof: push tag `v0.1.0-rc.1`; the GitHub Release has five binaries;
+- [x] Release workflow — proof: push tag `v0.1.0-rc.1`; the GitHub Release has five binaries;
       the darwin-arm64 asset downloads and runs `--version`. Tag and release deleted after.
 
 ## Architecture
