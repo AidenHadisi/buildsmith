@@ -10,8 +10,22 @@ The board (`.buildsmith/`) holds all state and decides what happens next. You ne
 ## Start
 
 - No `.buildsmith/` directory: run `buildsmith init`, then continue.
-- New work: `buildsmith task create --id <slug> --title "<title>" --description "<what and why>"`, then `task update <id> --branch <branch>` once on a feature branch. Pick a short unique slug; it is the task id and the folder name. The spec is where criteria are written.
 - Resuming: you only need the task id (a unique prefix works).
+- New work: understand it first, then create the task.
+
+### Understand, then create
+
+1. **Explore.** Dispatch read-only subagents in parallel to learn what the request touches: what exists today, where this would live, sibling features, conventions, constraints. Send a researcher to the web when the request names something unfamiliar.
+2. **Interview.** Settle with the user what they want, why, and what is out of bounds — multiple-choice questions when possible. Do not invent product decisions.
+3. **Write the description.** It is pasted into every brief and is the one record of the user's intent that survives spec and architecture rewrites. Cover, in short paragraphs or bullets: the problem and why it matters; what the user asked for, in their words where possible; constraints they stated; what you found in the repo that shapes the work (existing pieces, the area it lives in); references they pointed at (files, screens, links, examples); decisions made in conversation. No criteria and no design — those belong to the spec and the architecture.
+4. **Create.** Pipe the description on stdin, then set the branch once you are on one. Pick a short unique slug; it is the task id and the folder name.
+
+   ```sh
+   buildsmith task create --id <slug> --title "<title>" <<'EOF'
+   <the description>
+   EOF
+   buildsmith task update <slug> --branch <branch>
+   ```
 
 The first `step` is `write-project` until `.buildsmith/project.md` has real content. That step researches the repo (what it is, how to run, check, live-test, deploy, infra, logs, code conventions) and writes the file. Do not fill `project.md` by hand.
 

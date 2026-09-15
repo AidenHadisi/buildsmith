@@ -184,6 +184,13 @@ describe("task commands", () => {
     });
     expect(dup.code).toBe(1);
     expect(dup.stderr).toContain("task invoices-pdf already exists");
+
+    const piped = await run(["task", "create", "--title", "Piped"], {
+      cwd: dir,
+      stdin: "Why it matters.\n\n- a constraint\n",
+    });
+    expect(piped.code).toBe(0);
+    expect(JSON.parse(piped.stdout).description).toBe("Why it matters.\n\n- a constraint");
   });
 });
 

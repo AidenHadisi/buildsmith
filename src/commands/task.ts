@@ -3,19 +3,28 @@ import { defineCommand } from "citty";
 import { next } from "../pipeline.ts";
 
 const create = defineCommand({
-  meta: { name: "create", description: "Create a task" },
+  meta: {
+    name: "create",
+    description: "Create a task; the description is read from stdin unless given",
+  },
   args: {
     id: { type: "string", description: "Task id (slug); default: from the title" },
     title: { type: "string", description: "Task title", required: true },
-    description: { type: "string", description: "Task description" },
+    description: { type: "string", description: "Task description (short form)" },
+    file: { type: "string", description: "Read the description from a file instead of stdin" },
   },
-  run: ({ args }) =>
+  run: async ({ args }) =>
     createTask(findRoot(), {
       id: args.id,
       title: args.title,
-      description: args.description ?? "",
+      description: args.description ?? (await description(args.file)),
     }),
 });
+
+async function description(file?: string) {
+  if (file) return Bun.file(file).text();
+  return process.stdin.isTTY ? "" : Bun.stdin.text();
+}
 
 const list = defineCommand({
   meta: { name: "list", description: "List tasks with their next action" },
