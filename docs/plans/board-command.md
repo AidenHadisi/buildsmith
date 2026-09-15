@@ -64,7 +64,71 @@ board, and a pushed `v*` tag produces five binaries on a GitHub Release.
 
 ## Architecture
 
-_Filled in step 3._
+Jobs: (1) build and ship the SPA with the CLI, (2) resolve sidecar assets in source and compiled
+mode, (3) serve the board for the cwd's repo, (4) compile and release binaries.
+
+**Components**
+
+- **`packages/cli/web/`** — the Vite SPA and the Hono server, moved verbatim from `apps/web`
+  (`index.html`, `vite.config.ts`, `public/`, `src/client/**`, `src/server/app.ts` + test). Its own
+  `tsconfig.json` (DOM lib, `@` alias) so the CLI's tsconfig stays Bun-only. Vite `outDir` is
+  `packages/cli/dist`. `apps/web` and `@buildsmith/web` disappear; the CLI's `typecheck` runs both
+  tsconfigs. Hides: how the board is built.
+- **`src/paths.ts`** — one constant, `pkgRoot`: `import.meta.dir` when
+  `Bun.isStandaloneExecutable` (everything is bundled to `/$bunfs/root/`), else the package
+  directory. Exports `promptsDir`, `pluginDir`, `distDir`. `prompts.ts`, `setup.ts`, `brief.ts`
+  read from here instead of their own `import.meta.dir` math. `brief.ts`'s `cli` becomes
+  `Bun.isStandaloneExecutable ? process.execPath : \`bun ${Bun.main}\``. Hides: where the binary
+  keeps its files.
+- **`src/commands/board.ts`** — `defineCommand` with `--port` (default 3000) and `--no-open`.
+  Opens the store from cwd (`act`), checks `distDir/index.html` exists (else throws naming
+  `bun run build`), `createApp(store, distDir)`, `Bun.serve({ hostname: "127.0.0.1", port })`
+  falling back to `port: 0` on `EADDRINUSE`, prints `server.url`, spawns the platform opener
+  (`open` / `xdg-open` / `cmd /c start ""`) with stdio ignored, stays alive until SIGINT then
+  `server.stop()`. `io.ts` `act` appends "run `buildsmith init`" to the store's no-root error so
+  every command benefits. Hides: serving and lifecycle.
+- **Build + release** — CLI scripts: `dev` (Vite + `bun --watch src/main.ts board --no-open`),
+  `build` (`vite build`), `build:bin` (`bun build --compile --asset ./dist --asset ./prompts
+--asset ./plugin src/main.ts --outfile ../../release/buildsmith-<target>`). Root scripts point
+  at the CLI; `start` becomes `buildsmith board`. `.github/workflows/release.yml` on `v*`: build
+  the SPA once, cross-compile the five targets, `softprops/action-gh-release` (prerelease if tag
+  has `-`). Hides: target matrix.
+
+**Seams**
+
+- `board.ts` → `web/src/server/app.ts`: `createApp(store, distDir)` — unchanged signature.
+- `board.ts`, `prompts.ts`, `setup.ts`, `brief.ts` → `paths.ts`: read-only path constants.
+- `build:bin` → `paths.ts`: the `--asset` basenames (`dist`, `prompts`, `plugin`) are the names
+  `paths.ts` joins onto `pkgRoot`. Same names in both places, documented in `paths.ts`.
+
+**Key decisions**
+
+- Move, don't copy: one package owns build and serve, so nothing can drift between them.
+- `hono/bun` `serveStatic` stays; it reads with `Bun.file`, which works on `/$bunfs/`. If the live
+  test shows otherwise, swap for a ten-line `Bun.file` handler in `app.ts` — not pre-emptively.
+- Port fallback via catch-and-retry on `EADDRINUSE`, not a port scanner.
+- Browser opener is a spawn, not a dependency.
+- No `BUILDSMITH_ROOT` any more: cwd is the contract, like every other command.
+
+**Critic fixes (adopted)**
+
+- `/events` is a long-lived SSE stream, so `server.stop()` would hang with a tab open: `run`
+  awaits `process.once("SIGINT")`, then `server.stop(true)` and returns normally so exit is 0.
+- Opener spawn wrapped in try/catch (ENOENT is synchronous).
+- Vite `build.emptyOutDir: true` since `outDir` is outside the Vite root.
+- `board.ts` takes the dist dir from `BUILDSMITH_DIST` when set (tests only) so both the happy path
+  and the "not built" path are testable without a real build.
+- Web deps land in the CLI's `devDependencies`; only `hono` is runtime.
+- Windows outfile gets `.exe`.
+
+## Slices
+
+1. **Move the board into the CLI** — `apps/web` → `packages/cli/web`, tsconfigs, Vite outDir,
+   scripts, CI; `bun run dev|build|check|typecheck|test` green.
+2. **`buildsmith board`** — `paths.ts`, the command, port fallback, opener, SIGINT, error hints,
+   `{{cli}}`; CLI tests; docs.
+3. **Binaries and release** — `build:bin`, `release.yml`, `.gitignore`, README install section;
+   prove the compiled binary and the tag workflow.
 
 ## Conventions
 
@@ -75,7 +139,7 @@ _Filled in step 3._
 - CLI tests spawn `bun src/main.ts` in a `mkdtemp` repo and assert stdout/stderr/exit —
   exemplar: `packages/cli/src/cli.test.ts` `run()`
 - Web server tests are in-process `app.request()` with a temp dist — exemplar:
-  `apps/web/src/server/app.test.ts`
+  `packages/cli/web/src/server/app.test.ts`
 - Sidecar assets resolve from `import.meta.dir` — exemplar: `packages/cli/src/prompts.ts`
 - `.ts`/`.tsx` import extensions, `import type`, oxfmt defaults (double quotes, semicolons, 100).
 
@@ -95,9 +159,13 @@ _Filled in step 3._
   and `curl -s localhost:3000/ | head -3`.
 - Dev mode: `bun run dev` from the checkout, http://localhost:5173.
 - Binary: `bun run build:bin`, then `env PATH=/usr/bin:/bin ./release/buildsmith-darwin-arm64 board
-  --no-open --port 0` from `/tmp/bs-demo`.
+--no-open --port 0` from `/tmp/bs-demo`.
 - Nothing here leaves the machine except the release tag push in the last criterion.
 
 ## Design rulings
 
 ## Slice log
+
+- Slice 1: `apps/web` → `packages/cli/web`; `@buildsmith/web` and the standalone
+  `src/server/index.ts` entry are gone. The CLI's `dev` script runs Vite only for now; slice 2 adds
+  the `bun --watch src/main.ts board --no-open` half once the command exists.

@@ -2,7 +2,7 @@
 
 - `bun install`
 - Dev: `bun run dev` — Vite on http://localhost:5173 (proxies to Hono on :3000)
-- Prod: `bun run build && bun run start` — http://localhost:3000
+- Prod: `bun run build` — writes the SPA to `packages/cli/dist`
 
 ## Check
 
@@ -13,8 +13,8 @@
 ## Live test
 
 - Dev: `bun run dev`, open http://localhost:5173 (Vite proxies `/api`, `/events`, `/tasks` to :3000)
-- Prod: `bun run build && bun run start`, open http://localhost:3000
-- Data: the repo's own `.buildsmith/`; `BUILDSMITH_ROOT` overrides the cwd lookup
+- Prod: `bun run build` writes `packages/cli/dist`
+- Data: the repo's own `.buildsmith/`, resolved from the cwd
 
 ## Environment
 

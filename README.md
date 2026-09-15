@@ -90,8 +90,7 @@ buildsmith task create --title "Invoice PDF export" \
 Then ask your agent to run the `buildsmith` skill on that task. It will interview you for the spec, run the critique loop, ask you to approve, design the architecture, run that loop, ask again, and build. Watch it on the board:
 
 ```sh
-bun run build && bun run start       # http://localhost:3000, from the buildsmith checkout
-# BUILDSMITH_ROOT=/path/to/repo to point it at another project
+bun run dev                          # http://localhost:5173, from the buildsmith checkout
 ```
 
 Everything is also a CLI command, so you can drive or inspect any step by hand:
@@ -133,7 +132,7 @@ See [docs/how-it-works.md](docs/how-it-works.md) for the state machine, note voc
 ```
 packages/store    Markdown + YAML store, next(), file watcher
 packages/cli      buildsmith CLI, prompt templates, plugin (skill + agents)
-apps/web          Local board (Hono + React), read-only view of .buildsmith/
+packages/cli/web  Local board (Hono + React), read-only view of .buildsmith/
 ```
 
 ## Status
