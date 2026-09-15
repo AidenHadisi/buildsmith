@@ -1,7 +1,5 @@
 ---
-role: user
-model: fast
-readonly: true
+run: self
 ---
 
 Human gate: the spec has been reviewed and needs the user's approval.

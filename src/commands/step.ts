@@ -40,9 +40,7 @@ async function decide(root: string, task: TaskRecord): Promise<Step> {
   if (action === "none") return { do: "done", action };
   if (due.ask) return { do: "ask", action, text: due.ask };
   const brief = await renderBrief(root, task, action, due.reason);
-  if (brief.role === "planner" || brief.role === "user") {
-    return { do: "self", action, text: brief.text };
-  }
+  if (brief.run === "self") return { do: "self", action, text: brief.text };
   const repeats = await trackStall(task, action, await fingerprint(root, task));
   if (repeats >= 2) {
     return {

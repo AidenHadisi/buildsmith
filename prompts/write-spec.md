@@ -1,7 +1,5 @@
 ---
-role: planner
-model: strong
-readonly: false
+run: self
 ---
 
 You are the planner writing the spec for this task.

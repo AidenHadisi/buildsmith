@@ -1,5 +1,5 @@
 ---
-role: tester
+run: dispatch
 model: fast
 readonly: false
 ---

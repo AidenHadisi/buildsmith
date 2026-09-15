@@ -1,5 +1,5 @@
 ---
-role: coder
+run: dispatch
 model: strong
 readonly: false
 ---

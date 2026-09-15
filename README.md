@@ -156,7 +156,7 @@ Caps turn into `ask` so a loop cannot run forever: a document at revision 5, a b
 
 ### Prompts
 
-Each step is a markdown template with frontmatter for its role and model tier. Eject one into the repo and edit it, or append to it with an `.extra.md` file and leave the built-in intact.
+Each step is a markdown template with frontmatter saying who runs it (`run: self` for the main agent, `run: dispatch` for a subagent) and, for dispatched steps, the model tier and whether it is read-only. Eject one into the repo and edit it, or append to it with an `.extra.md` file and leave the built-in intact.
 
 ```sh
 buildsmith prompt list                          # every template and where it resolves from

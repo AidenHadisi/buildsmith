@@ -1,7 +1,5 @@
 ---
-role: user
-model: fast
-readonly: true
+run: self
 ---
 
 Human gate: a slice is blocked and needs a decision only the user can make.

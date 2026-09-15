@@ -1,7 +1,5 @@
 ---
-role: planner
-model: strong
-readonly: false
+run: self
 ---
 
 You are the planner designing the architecture for this task and cutting it into slices.

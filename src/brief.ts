@@ -18,7 +18,9 @@ import {
   type Prompt,
 } from "./prompts.ts";
 
-export type Brief = Omit<Prompt, "body"> & { text: string };
+export type Brief =
+  | { run: "self"; text: string }
+  | { run: "dispatch"; model: string; readonly: boolean; text: string };
 
 const SLICE_PICK: Record<string, (slice: SliceRecord) => boolean> = {
   "work-slice": (s) => s.status !== "done",
@@ -35,9 +37,10 @@ export async function renderBrief(
 ): Promise<Brief> {
   if (!(await actions()).includes(action)) throw new Error(`unknown action ${action}`);
   const { path } = await resolve(root, action);
-  const { role, model, readonly, body } = await load(path);
+  const { body, ...prompt } = await load(path);
   const text = render(body, await vars(root, task, action, reason), path);
-  return { role, model: resolveModel(root, model), readonly, text };
+  if (prompt.run === "self") return { ...prompt, text };
+  return { ...prompt, model: resolveModel(root, prompt.model), text };
 }
 
 function resolveModel(root: string, model: string): string {

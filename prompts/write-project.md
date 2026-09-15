@@ -1,5 +1,5 @@
 ---
-role: researcher
+run: dispatch
 model: strong
 readonly: false
 ---

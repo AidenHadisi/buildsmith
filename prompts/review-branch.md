@@ -1,5 +1,5 @@
 ---
-role: code-reviewer
+run: dispatch
 model: strong
 readonly: true
 ---

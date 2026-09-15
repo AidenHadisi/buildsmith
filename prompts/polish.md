@@ -1,5 +1,5 @@
 ---
-role: polisher
+run: dispatch
 model: strong
 readonly: false
 ---

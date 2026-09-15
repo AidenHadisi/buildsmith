@@ -484,7 +484,7 @@ describe("brief command", () => {
     expect(code).toBe(0);
     const brief = JSON.parse(stdout);
     expect(brief.action).toBe("write-project");
-    expect(brief.role).toBe("researcher");
+    expect(brief.run).toBe("dispatch");
     expect(brief.readonly).toBe(false);
     expect(brief.text).toContain("project write");
     expect(brief.text).toContain("## Deploy");
@@ -492,14 +492,14 @@ describe("brief command", () => {
     expect(brief.text).not.toContain("{{");
   });
 
-  test("brief after a spec write returns review-spec with role and readonly", async () => {
+  test("brief after a spec write returns review-spec with model and readonly", async () => {
     const { dir, a } = await setup();
     await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n\nThe spec body.\n" });
     const { stdout, code } = await run(["brief", a.id], { cwd: dir });
     expect(code).toBe(0);
     const brief = JSON.parse(stdout);
     expect(brief.action).toBe("review-spec");
-    expect(brief.role).toBe("reviewer");
+    expect(brief.run).toBe("dispatch");
     expect(brief.model).toBe("claude-opus-5-high");
     expect(brief.readonly).toBe(true);
     expect(brief.text).toContain("The spec body.");
@@ -529,7 +529,7 @@ describe("brief command", () => {
     await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
     await Bun.write(
       join(dir, ".buildsmith", "prompts", "review-spec.md"),
-      "---\nrole: reviewer\nmodel: fast\nreadonly: true\n---\nCUSTOM {{title}}\n",
+      "---\nrun: dispatch\nmodel: fast\nreadonly: true\n---\nCUSTOM {{title}}\n",
     );
     const { stdout, code } = await run(["brief", a.id], { cwd: dir });
     expect(code).toBe(0);
@@ -543,7 +543,7 @@ describe("brief command", () => {
     await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
     await Bun.write(
       join(dir, ".buildsmith", "prompts", "review-spec.md"),
-      "---\nrole: reviewer\nmodel: fast\nreadonly: true\n---\n{{bogus}}\n",
+      "---\nrun: dispatch\nmodel: fast\nreadonly: true\n---\n{{bogus}}\n",
     );
     const { stderr, code } = await run(["brief", a.id], { cwd: dir });
     expect(code).toBe(1);
@@ -631,7 +631,7 @@ describe("prompt commands", () => {
     const { stdout, code } = await run(["prompt", "show", "review-spec"], { cwd: dir });
     expect(code).toBe(0);
     const shown = JSON.parse(stdout);
-    expect(shown.text).toStartWith("---\nrole: reviewer");
+    expect(shown.text).toStartWith("---\nrun: dispatch");
     expect(shown.text).toContain("{{extra}}");
   });
 
