@@ -168,7 +168,7 @@ buildsmith prompt diff review-spec              # your override vs the built-in
 
 Shared fragments eject the same way: `standards/spec` and `standards/design` hold the bars every writer and reviewer is held to; `include/task` is the task card on every brief; `include/delegate` is the rule that sends reading and research to parallel subagents.
 
-### Models and columns
+### Models
 
 Dispatched templates name a tier, `strong` or `fast`. Both default to `inherit`, so subagents run on whatever model your agent is using. Pin either tier to a model id your host understands, once for you in `~/.config/buildsmith/config.yml` (or `$XDG_CONFIG_HOME/buildsmith/config.yml`) or per repo in `.buildsmith/config.yml`. Every key is optional; the repo file wins over the user file, key by key.
 
@@ -176,28 +176,27 @@ Dispatched templates name a tier, `strong` or `fast`. Both default to `inherit`,
 models:
   strong: claude-opus-5-high
   fast: cursor-grok-4.6-high
-columns: [backlog, planning, building, review, done]
 ```
 
 ## CLI
 
 Every command prints JSON. Task ids accept a unique prefix.
 
-| Command                                | What it does                                                  |
-| -------------------------------------- | ------------------------------------------------------------- |
-| `init [dir]`                           | Create a `.buildsmith` directory                              |
-| `setup [cursor\|claude\|codex]`        | Install the plugin for agent hosts                            |
-| `step <id>`                            | Decide the next step: `done`, `ask`, `self`, or `dispatch`    |
-| `next <id>`                            | Show the next action, its stage, and why                      |
-| `brief <id> [action]`                  | Render the prompt for the next action                         |
-| `board`                                | Serve the board on localhost                                  |
-| `task create\|list\|get\|move\|update` | Manage tasks                                                  |
-| `doc write\|read\|status\|result`      | Write, read, and advance the spec, architecture, verification |
-| `slice add\|list\|update`              | Manage slices                                                 |
-| `note add\|list`                       | Record and read notes and verdicts                            |
-| `project read\|write\|lesson`          | Manage `project.md`                                           |
-| `prompt list\|show\|eject\|diff`       | Inspect and override prompt templates                         |
-| `asset put <id> <file>`                | Attach a file to a task                                       |
+| Command                           | What it does                                                  |
+| --------------------------------- | ------------------------------------------------------------- |
+| `init [dir]`                      | Create a `.buildsmith` directory                              |
+| `setup [cursor\|claude\|codex]`   | Install the plugin for agent hosts                            |
+| `step <id>`                       | Decide the next step: `done`, `ask`, `self`, or `dispatch`    |
+| `next <id>`                       | Show the next action, its stage, and why                      |
+| `brief <id> [action]`             | Render the prompt for the next action                         |
+| `board`                           | Serve the board on localhost                                  |
+| `task create\|list\|get\|update`  | Manage tasks                                                  |
+| `doc write\|read\|status\|result` | Write, read, and advance the spec, architecture, verification |
+| `slice add\|list\|update`         | Manage slices                                                 |
+| `note add\|list`                  | Record and read notes and verdicts                            |
+| `project read\|write\|lesson`     | Manage `project.md`                                           |
+| `prompt list\|show\|eject\|diff`  | Inspect and override prompt templates                         |
+| `asset put <id> <file>`           | Attach a file to a task                                       |
 
 Run any command with `--help` for its flags.
 
@@ -209,7 +208,7 @@ Run any command with `--help` for its flags.
   project.md                     # how to run, check, live-test, deploy, conventions
   prompts/                       # optional overrides
   tasks/<slug>/
-    task.md                      # title, column, branch
+    task.md                      # title, branch
     spec.md  architecture.md  verification.md
     slices/  notes/  assets/
 ```

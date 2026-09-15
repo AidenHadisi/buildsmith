@@ -1,4 +1,4 @@
-import { createTask, findRoot, getTask, listTasks, moveTask, updateTask } from "../store/index.ts";
+import { createTask, findRoot, getTask, listTasks, updateTask } from "../store/index.ts";
 import { defineCommand } from "citty";
 import { next } from "../pipeline.ts";
 
@@ -37,18 +37,6 @@ const get = defineCommand({
   run: ({ args }) => getTask(findRoot(), args.id),
 });
 
-const move = defineCommand({
-  meta: { name: "move", description: "Move a task to a column" },
-  args: {
-    id: { type: "positional", description: "Task id or unique prefix", required: true },
-    column: { type: "positional", description: "Target column", required: true },
-    before: { type: "string", description: "Place before this task" },
-    after: { type: "string", description: "Place after this task" },
-  },
-  run: ({ args }) =>
-    moveTask(findRoot(), args.id, args.column, { before: args.before, after: args.after }),
-});
-
 const update = defineCommand({
   meta: { name: "update", description: "Update a task" },
   args: {
@@ -68,6 +56,6 @@ const update = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "task", description: "Create, list, move, and update tasks" },
-  subCommands: { create, list, get, move, update },
+  meta: { name: "task", description: "Create, list, and update tasks" },
+  subCommands: { create, list, get, update },
 });

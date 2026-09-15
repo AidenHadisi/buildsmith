@@ -2,7 +2,6 @@ import { readFileSync, statSync, watch as fsWatch } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import { Document } from "yaml";
 import * as z from "zod";
 import { StoreError } from "./errors.ts";
 import {
@@ -16,17 +15,14 @@ import {
   write,
 } from "./files.ts";
 
-const DEFAULT_COLUMNS = ["backlog", "planning", "building", "review", "done"] as const;
-
 // Every key is optional per file; loadConfig layers built-in defaults, the user file, then the repo file.
 const configSchema = z.object({
-  columns: z.array(z.string()).min(1).optional(),
   models: z
     .object({ strong: z.string().min(1).optional(), fast: z.string().min(1).optional() })
     .optional(),
 });
 type ConfigLayer = z.infer<typeof configSchema>;
-export type Config = { columns: string[]; models: { strong: string; fast: string } };
+export type Config = { models: { strong: string; fast: string } };
 
 function userConfigPath(): string {
   const base = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
@@ -57,7 +53,11 @@ export async function init(dir: string): Promise<string> {
   try {
     await writeFile(
       join(root, "config.yml"),
-      new Document({ columns: [...DEFAULT_COLUMNS] }).toString(),
+      `# Buildsmith repo config. Every key is optional; see README "Models".
+# models:
+#   strong: <model id, default inherit>
+#   fast: <model id, default inherit>
+`,
       { flag: "wx" },
     );
   } catch (err) {
@@ -74,7 +74,6 @@ export function loadConfig(root: string): Config {
     throw new StoreError("invalid_input", `${path} is missing — run \`buildsmith init\``);
   }
   return {
-    columns: repo.columns ?? user?.columns ?? [...DEFAULT_COLUMNS],
     models: {
       strong: repo.models?.strong ?? user?.models?.strong ?? "inherit",
       fast: repo.models?.fast ?? user?.models?.fast ?? "inherit",
