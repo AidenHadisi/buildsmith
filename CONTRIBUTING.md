@@ -27,4 +27,4 @@ Open against `main`. Keep changes small. Do not commit `node_modules`, build out
 
 ## Releases
 
-The package is still `private`. When publishing starts, versions bump with `bun run release` (bumpp) from a clean `main`.
+Releases are cut from a clean `main` with `bun run release` (bumpp). It bumps the version, tags `v<version>`, and pushes; the Release workflow then attaches compiled binaries to a GitHub Release and publishes to npm.

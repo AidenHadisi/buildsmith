@@ -32,7 +32,7 @@ Buildsmith moves the process out of the model's head and onto disk. Every task i
 Requires [Bun](https://bun.sh) 1.4.2 or newer.
 
 ```sh
-npm install -g buildsmith
+npm install -g buildsmith   # or: bun add -g buildsmith
 ```
 
 Then install the plugin for the agent host you use:

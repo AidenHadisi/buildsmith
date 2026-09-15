@@ -1,7 +1,6 @@
 {
   "name": "buildsmith",
   "version": "0.0.0",
-  "private": true,
   "description": "A lightweight agentic pipeline, enforced by a deterministic state machine over markdown on disk.",
   "keywords": [
     "agents",
@@ -27,10 +26,12 @@
     "buildsmith": "./src/main.ts"
   },
   "files": [
+    "board/src/server/app.ts",
     "dist",
     "plugin",
     "prompts",
-    "src"
+    "src",
+    "!src/**/*.test.ts"
   ],
   "type": "module",
   "publishConfig": {
@@ -41,6 +42,7 @@
     "dev:board": "vite --config board/vite.config.ts",
     "dev:server": "bun --watch src/main.ts board --no-open --port 3000",
     "build": "vite build --config board/vite.config.ts",
+    "prepack": "bun run build",
     "build:bin": "bun run build && bun build-bin.ts",
     "start": "bun src/main.ts board",
     "check": "oxlint && oxfmt --check",

@@ -27,3 +27,24 @@ jobs:
           files: release/*
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
+
+  # Publishes via npm trusted publishing (OIDC); the package's trusted publisher on npmjs.com
+  # must point at this repo and workflow file. No NPM_TOKEN secret is needed.
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - run: npm publish
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
