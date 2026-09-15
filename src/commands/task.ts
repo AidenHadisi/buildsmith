@@ -1,6 +1,7 @@
 import { createTask, findRoot, getTask, listTasks, moveTask, updateTask } from "../store/index.ts";
 import { defineCommand } from "citty";
 import { next } from "../pipeline.ts";
+import { piped } from "./stdin.ts";
 
 const create = defineCommand({
   meta: {
@@ -11,20 +12,14 @@ const create = defineCommand({
     id: { type: "string", description: "Task id (slug); default: from the title" },
     title: { type: "string", description: "Task title", required: true },
     description: { type: "string", description: "Task description (short form)" },
-    file: { type: "string", description: "Read the description from a file instead of stdin" },
   },
   run: async ({ args }) =>
     createTask(findRoot(), {
       id: args.id,
       title: args.title,
-      description: args.description ?? (await description(args.file)),
+      description: args.description ?? (await piped()),
     }),
 });
-
-async function description(file?: string) {
-  if (file) return Bun.file(file).text();
-  return process.stdin.isTTY ? "" : Bun.stdin.text();
-}
 
 const list = defineCommand({
   meta: { name: "list", description: "List tasks with their next action" },

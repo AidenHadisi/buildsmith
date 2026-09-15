@@ -195,23 +195,17 @@ describe("task commands", () => {
 });
 
 describe("doc commands", () => {
-  test("doc write from --file and stdin produce byte-identical spec.md", async () => {
-    const { dir, a, b } = await setup();
+  test("doc write stores the piped body verbatim in spec.md", async () => {
+    const { dir, a } = await setup();
     const content = "# Spec\n\nByte identical body.\n";
-    await Bun.write(join(dir, "f.md"), content);
+    const res = await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: content });
+    expect(res.code).toBe(0);
 
-    const fromFile = await run(["doc", "write", a.id, "spec", "--file", "f.md"], { cwd: dir });
-    expect(fromFile.code).toBe(0);
-    const fromStdin = await run(["doc", "write", b.id, "spec"], { cwd: dir, stdin: content });
-    expect(fromStdin.code).toBe(0);
-
-    const root = findRoot(dir);
-    const specA = join((await getTask(root, a.id)).dir, "spec.md");
-    const specB = join((await getTask(root, b.id)).dir, "spec.md");
-    expect(await Bun.file(specB).text()).toBe(await Bun.file(specA).text());
+    const spec = join((await getTask(findRoot(dir), a.id)).dir, "spec.md");
+    expect(await Bun.file(spec).text()).toEndWith(content);
   });
 
-  test("doc write with neither --file nor a piped body fails with empty body", async () => {
+  test("doc write without a piped body fails with empty body", async () => {
     const { dir, a } = await setup();
     const { stderr, code } = await run(["doc", "write", a.id, "spec"], { cwd: dir });
     expect(code).toBe(1);

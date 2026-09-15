@@ -1,5 +1,6 @@
 import { addNote, findRoot, listNotes } from "../store/index.ts";
 import { defineCommand } from "citty";
+import { body } from "./stdin.ts";
 
 const add = defineCommand({
   meta: { name: "add", description: "Add a note to a task" },
@@ -8,14 +9,13 @@ const add = defineCommand({
     author: { type: "string", description: "Note author", required: true },
     target: { type: "string", description: "What the note is about (e.g. spec)", required: true },
     verdict: { type: "string", description: "Note verdict" },
-    file: { type: "string", description: "Read the body from a file instead of stdin" },
   },
   run: async ({ args }) =>
     addNote(findRoot(), args.id, {
       author: args.author,
       target: args.target,
       verdict: args.verdict,
-      body: await body(args.file),
+      body: await body(),
     }),
 });
 
@@ -32,13 +32,3 @@ export default defineCommand({
   meta: { name: "note", description: "Add and list task notes" },
   subCommands: { add, list },
 });
-
-async function body(file?: string) {
-  const text = file
-    ? await Bun.file(file).text()
-    : process.stdin.isTTY
-      ? ""
-      : await Bun.stdin.text();
-  if (!text) throw new Error("empty body: provide --file or pipe a body on stdin");
-  return text;
-}
