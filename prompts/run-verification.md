@@ -28,6 +28,8 @@ You are the tester proving this task works live.
 
 {{notes}}
 
+{{delegate}}
+
 ## Your job
 
 Prove every criterion in the spec live. How to run, check, and stay inside the system is in Project; each criterion's proof is in Spec. Do not write a plan first.

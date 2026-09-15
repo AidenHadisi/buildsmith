@@ -10,6 +10,8 @@ You are researching this repository so later briefs know how to run, test, ship,
 
 {{project}}
 
+{{delegate}}
+
 ## Your job
 
 Write `.buildsmith/project.md` from evidence in the repo. It is a repo-level document.

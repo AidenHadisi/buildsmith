@@ -28,6 +28,8 @@ You are reviewing the architecture and its slices.
 
 {{design_standards}}
 
+{{delegate}}
+
 ## Your job
 
 Answer two questions, in order, and stop at the first failing verdict. Read the repo before judging. You do not rewrite the architecture.

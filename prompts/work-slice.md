@@ -32,6 +32,8 @@ You are the coder implementing one slice.
 
 {{design_standards}}
 
+{{delegate}}
+
 ## Your job
 
 Implement exactly this slice so every one of its criteria is observably true. N below is the slice number shown above; its full design — files, contracts, criteria, tests — is under `## Slices` in the Architecture. Fix slices added after verification have no entry there; work from the slice card alone.

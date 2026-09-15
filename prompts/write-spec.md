@@ -24,6 +24,8 @@ You are the planner writing the spec for this task.
 
 {{spec_standards}}
 
+{{delegate}}
+
 ## Your job
 
 Write the spec: what we are building and what done looks like. Hold every criterion to the Standards above.

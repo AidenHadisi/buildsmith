@@ -28,6 +28,8 @@ You are the coder addressing a branch review.
 
 {{design_standards}}
 
+{{delegate}}
+
 ## Your job
 
 The newest note above is a `revise` from the code reviewer.

@@ -28,6 +28,8 @@ You are polishing the implementation on this branch before it goes to code revie
 
 {{design_standards}}
 
+{{delegate}}
+
 ## Your job
 
 Restructure and clean the working diff without changing observable behavior or any contract in the architecture. Prefer deletion. An empty polish is valid when the diff is already right.

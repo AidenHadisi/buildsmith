@@ -53,10 +53,11 @@ async function vars(root: string, task: TaskRecord, action: string, reason: stri
   const spec = kind === "spec" ? doc : await readDoc(root, task.id, "spec");
   const verification = await readDoc(root, task.id, "verification");
   const notes = await listNotes(root, task.id, noteTarget(action, kind, slice));
-  const [designStandards, specStandards, taskCard] = await Promise.all([
+  const [designStandards, specStandards, taskCard, delegate] = await Promise.all([
     standard(root, "design"),
     standard(root, "spec"),
     snippet(root, "include/task"),
+    snippet(root, "include/delegate"),
   ]);
   const slots: Record<string, string> = {
     id: task.id,
@@ -72,6 +73,7 @@ async function vars(root: string, task: TaskRecord, action: string, reason: stri
     verification: verification?.body.trimEnd() ?? "(none)",
     design_standards: designStandards,
     spec_standards: specStandards,
+    delegate: delegate.text,
     notes:
       notes
         .map((n) => `### ${n.author}${n.verdict ? ` · ${n.verdict}` : ""}\n\n${n.body}`)

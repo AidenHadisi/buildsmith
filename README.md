@@ -166,7 +166,7 @@ buildsmith prompt diff review-spec              # your override vs the built-in
 #   .buildsmith/prompts/review-spec.extra.md    # appended under "Repo additions"
 ```
 
-Shared fragments eject the same way: `standards/spec` and `standards/design` hold the bars every writer and reviewer is held to; `include/task` is the task card on every brief.
+Shared fragments eject the same way: `standards/spec` and `standards/design` hold the bars every writer and reviewer is held to; `include/task` is the task card on every brief; `include/delegate` is the rule that sends reading and research to parallel subagents.
 
 ### Models and columns
 
