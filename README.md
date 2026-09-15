@@ -62,7 +62,7 @@ buildsmith step invoice-pdf
   "do": "dispatch",
   "action": "review-spec",
   "readonly": true,
-  "model": "claude-opus-4.6",
+  "model": "claude-opus-5-high",
   "prompt": "Run `buildsmith brief invoice-pdf` and follow it exactly, including its Record section. Return one line."
 }
 ```
@@ -170,12 +170,12 @@ Shared fragments eject the same way: `standards/spec` and `standards/design` hol
 
 ### Models and columns
 
-Templates name a tier, `strong` or `fast`. `init` writes defaults for both to `.buildsmith/config.yml`; change them to whatever your agent host understands:
+Templates name a tier, `strong` or `fast`. Both must be mapped to a model id in `.buildsmith/config.yml`; `init` writes a starting pair, and you change them to whatever your agent host understands:
 
 ```yaml
 models:
-  strong: claude-opus-4.6
-  fast: gemini-3.5-flash
+  strong: claude-opus-5-high
+  fast: cursor-grok-4.6-high
 columns: [backlog, planning, building, review, done]
 ```
 

@@ -189,8 +189,8 @@ describe("root", () => {
   - review
   - done
 models:
-  strong: claude-opus-4.6
-  fast: gemini-3.5-flash
+  strong: claude-opus-5-high
+  fast: cursor-grok-4.6-high
 `);
     expect(await Bun.file(join(root, "project.md")).exists()).toBe(false);
   });

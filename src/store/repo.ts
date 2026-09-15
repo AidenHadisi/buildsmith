@@ -15,19 +15,14 @@ import {
 } from "./files.ts";
 
 const DEFAULT_COLUMNS = ["backlog", "planning", "building", "review", "done"] as const;
-const DEFAULT_MODELS = { strong: "claude-opus-4.6", fast: "gemini-3.5-flash" } as const;
+const INIT_MODELS = { strong: "claude-opus-5-high", fast: "cursor-grok-4.6-high" };
 
 const configSchema = z.looseObject({
   columns: z
     .array(z.string())
     .min(1)
     .default([...DEFAULT_COLUMNS]),
-  models: z
-    .object({
-      strong: z.string().default(DEFAULT_MODELS.strong),
-      fast: z.string().default(DEFAULT_MODELS.fast),
-    })
-    .default(DEFAULT_MODELS),
+  models: z.object({ strong: z.string().min(1), fast: z.string().min(1) }),
 });
 export type Config = z.infer<typeof configSchema>;
 
@@ -55,7 +50,7 @@ export async function init(dir: string): Promise<string> {
   try {
     await writeFile(
       join(root, "config.yml"),
-      new Document({ columns: [...DEFAULT_COLUMNS], models: { ...DEFAULT_MODELS } }).toString(),
+      new Document({ columns: [...DEFAULT_COLUMNS], models: INIT_MODELS }).toString(),
       { flag: "wx" },
     );
   } catch (err) {
@@ -65,18 +60,22 @@ export async function init(dir: string): Promise<string> {
 }
 
 export function loadConfig(root: string): Config {
+  const path = join(root, "config.yml");
   let raw: string;
   try {
-    raw = readFileSync(join(root, "config.yml"), "utf8");
+    raw = readFileSync(path, "utf8");
   } catch (err) {
-    if (errCode(err) === "ENOENT") return configSchema.parse({});
-    throw err;
+    if (errCode(err) !== "ENOENT") throw err;
+    throw new StoreError("invalid_input", `${path} is missing — run \`buildsmith init\``);
   }
-  try {
-    return configSchema.parse(parseYaml(raw) ?? {});
-  } catch (err) {
-    throw new StoreError("invalid_input", "invalid config.yml", { cause: err });
-  }
+  const parsed = configSchema.safeParse(parseYaml(raw) ?? {});
+  if (parsed.success) return parsed.data;
+  const fields = parsed.error.issues.map((i) => i.path.join(".") || "root").join(", ");
+  throw new StoreError(
+    "invalid_input",
+    `invalid ${path} (${fields}); models.strong and models.fast are required`,
+    { cause: parsed.error },
+  );
 }
 
 export function watch(root: string, onChange: (event: WatchEvent) => void): () => void {
