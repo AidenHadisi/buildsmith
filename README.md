@@ -1,28 +1,39 @@
 <p align="center">
-  <img src="board/public/icon.png" width="96" alt="Buildsmith">
+  <img src="board/public/icon.png" alt="Buildsmith" width="120">
 </p>
 
 <h1 align="center">Buildsmith</h1>
 
 <p align="center">
   <strong>A lightweight agentic coding pipeline, enforced by a deterministic state machine over markdown on disk.</strong><br>
-  Git-friendly, diffable, human-readable. Never edited by hand; the CLI is the only writer.
+  Git-friendly, diffable, human-readable. Agents execute the next step; they never choose it.
 </p>
 
-Coding agents are good at steps and bad at processes. They forget the review loop, skip the gate, and grade their own homework. Skills are advice; nothing stops an agent from deciding it has done enough.
+<p align="center">
+  <a href="https://www.npmjs.com/package/buildsmith"><img src="https://img.shields.io/npm/v/buildsmith?color=black&label=npm" alt="npm"></a>
+  <a href="https://github.com/AidenHadisi/buildsmith/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/AidenHadisi/buildsmith/ci.yml?label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT"></a>
+  <img src="https://img.shields.io/badge/runtime-Bun%201.4%2B-f9f1e1" alt="Bun">
+  <img src="https://img.shields.io/badge/works%20with-Cursor%20%C2%B7%20Claude%20Code%20%C2%B7%20Codex-8A2BE2" alt="Cursor, Claude Code, Codex">
+</p>
 
-Buildsmith moves the process out of the model's head and onto disk. Every task is a folder of markdown. A small CLI reads those files and returns exactly one next step. Agents execute it. They do not choose it.
+---
+
+Coding agents are good at steps and bad at processes. They forget the review loop, skip the gate, and grade their own homework. Skills and rules are advice; nothing stops an agent from deciding it has done enough.
+
+Buildsmith moves the process out of the model's head and onto disk. Every task is a folder of markdown. A small CLI reads those files and returns exactly one next step: who runs it, with what model, with what brief. The agent runs that command in a loop until it says `done`.
 
 ![The Buildsmith board](images/board.png)
 
 ## Why Buildsmith
 
 - **Deterministic next step.** `buildsmith step` derives what happens next from file state, not from memory. Same files, same answer.
-- **No skip.** A draft spec needs a review. A `needs-changes` verdict sends it back. Nothing advances until the role that owns the step records a verdict.
-- **Fresh eyes on every review.** Reviewing, coding, polishing, and live-testing are dispatched to a new subagent with one brief and no memory of the last round. The planner never reviews its own work.
-- **Two approvals, then it builds.** You approve the spec and the architecture. Everything between approval and a verified feature runs without you, and stops for you when a slice is blocked or a loop hits its cap.
+- **No skipping.** A draft spec needs a review. A `needs-changes` verdict sends it back. Nothing advances until the role that owns the step records a verdict.
+- **Fresh eyes on every review.** Reviewing, coding, polishing, and live-testing go to a new subagent with one brief and no memory of the last round. The planner never reviews its own work.
+- **Shared findings, not shared opinions.** Facts about the repo are recorded once and carried on every brief, so a fresh reviewer re-judges the document without re-reading the repo.
+- **Two approvals, then it builds.** You approve the spec and the architecture. Everything from there to a verified feature runs without you, and stops only when a slice is blocked or a loop hits its cap.
 - **Live verification, not just green tests.** The last step runs the real process, exercises every criterion in the spec, and records evidence a skeptic can read.
-- **Markdown on disk.** Specs, architectures, slices, notes, and verdicts are plain files under `.buildsmith/`. Diffable, reviewable, `git blame`-able. Never edited by hand; the CLI is the only writer.
+- **Markdown on disk.** Specs, architectures, slices, notes, and verdicts are plain files under `.buildsmith/`. Diffable, reviewable, `git blame`-able.
 - **A plain CLI.** Every command prints JSON. Any agent that can run a shell can drive it.
 - **Prompts you own.** Every step is a markdown template. Eject one into your repo and edit it, or append to it and leave the built-in intact.
 - **Works where your agent lives.** One command installs the plugin for Cursor, Claude Code, or Codex.
@@ -33,11 +44,6 @@ Requires [Bun](https://bun.sh) 1.4.2 or newer.
 
 ```sh
 npm install -g buildsmith   # or: bun add -g buildsmith
-```
-
-Then install the plugin for the agent host you use:
-
-```sh
 buildsmith setup cursor     # or: claude, codex, or all three with no argument
 ```
 
@@ -49,9 +55,7 @@ In your repo, tell your agent what you want built:
 
 > Use buildsmith to add PDF export for invoices.
 
-That is the whole workflow. The agent initializes the board, researches the repo once, creates the task, interviews you for the spec, runs the review loop, asks you to approve, designs the architecture and its slices, asks you to approve again, and builds. You are asked twice, and again only if a loop hits its cap.
-
-Under the hood the agent runs one command in a loop:
+Under the hood, the agent runs a single command in a loop. It has nothing to remember and nothing to decide: the CLI reads the markdown on disk, works out the next step, and hands back exactly what to do and how, until the answer is `done`.
 
 ```sh
 buildsmith step invoice-pdf
@@ -125,9 +129,7 @@ flowchart TB
 
 Every loop repeats until a fresh reviewer returns `pass`. A rewrite bumps the revision and resets the document to `draft`, so nothing that changed goes un-reviewed.
 
-<p align="center">
-  <img src="images/task-notes.png" width="760" alt="A task's notes: a reviewer proposes a better design, the planner rules Adopt or Reject per point, a fresh reviewer passes">
-</p>
+![A task's notes: a reviewer proposes a better design, the planner rules Adopt or Reject per point, a fresh reviewer passes](images/task-notes.png)
 
 ### Roles and gates
 
@@ -166,7 +168,7 @@ buildsmith prompt diff review-spec              # your override vs the built-in
 #   .buildsmith/prompts/review-spec.extra.md    # appended under "Repo additions"
 ```
 
-Shared fragments eject the same way: `standards/spec` and `standards/design` hold the bars every writer and reviewer is held to; `include/task` is the task card on every brief; `include/delegate` is the rule that sends reading and research to parallel subagents.
+Shared fragments eject the same way: `standards/spec` and `standards/design` hold the bars every writer and reviewer is held to; `include/task` is the task card on every brief; `include/delegate` carries the task's findings and the rule that sends reading and research to parallel subagents.
 
 ### Models
 
@@ -182,21 +184,21 @@ models:
 
 Every command prints JSON. Task ids accept a unique prefix.
 
-| Command                           | What it does                                                  |
-| --------------------------------- | ------------------------------------------------------------- |
-| `init [dir]`                      | Create a `.buildsmith` directory                              |
-| `setup [cursor\|claude\|codex]`   | Install the plugin for agent hosts                            |
-| `step <id>`                       | Decide the next step: `done`, `ask`, `self`, or `dispatch`    |
-| `next <id>`                       | Show the next action, its stage, and why                      |
-| `brief <id> [action]`             | Render the prompt for the next action                         |
-| `board`                           | Serve the board on localhost                                  |
-| `task create\|list\|get\|update`  | Manage tasks                                                  |
-| `doc write\|read\|status\|result` | Write, read, and advance the spec, architecture, verification |
-| `slice add\|list\|update`         | Manage slices                                                 |
-| `note add\|list`                  | Record and read notes and verdicts                            |
-| `project read\|write\|lesson`     | Manage `project.md`                                           |
-| `prompt list\|show\|eject\|diff`  | Inspect and override prompt templates                         |
-| `asset put <id> <file>`           | Attach a file to a task; prints the markdown to embed it      |
+| Command                 | What it does                                               |
+| ----------------------- | ---------------------------------------------------------- |
+| `init [dir]`            | Create a `.buildsmith` directory                           |
+| `setup [cursor          | claude                                                     | codex]`                                       | Install the plugin for agent hosts |
+| `step <id>`             | Decide the next step: `done`, `ask`, `self`, or `dispatch` |
+| `next <id>`             | Show the next action, its stage, and why                   |
+| `brief <id> [action]`   | Render the prompt for the next action                      |
+| `board`                 | Serve the board on localhost                               |
+| `task create            | list                                                       | get                                           | update`                            | Manage tasks                                                  |
+| `doc write              | read                                                       | status                                        | result`                            | Write, read, and advance the spec, architecture, verification |
+| `slice add              | list                                                       | update`                                       | Manage slices                      |
+| `note add               | list`                                                      | Record and read notes, findings, and verdicts |
+| `project read           | write                                                      | lesson`                                       | Manage `project.md`                |
+| `prompt list            | show                                                       | eject                                         | diff`                              | Inspect and override prompt templates                         |
+| `asset put <id> <file>` | Attach a file to a task; prints the markdown to embed it   |
 
 Run any command with `--help` for its flags.
 
@@ -227,4 +229,4 @@ bun run typecheck && bun run check
 
 ## License
 
-[MIT](LICENSE) © Aiden Hadisi
+[MIT](LICENSE) © [Aiden Hadisi](https://github.com/AidenHadisi)
