@@ -28,7 +28,7 @@ You are reviewing the spec.
 
 ## Your job
 
-Answer two questions, in order, and stop at the first failing verdict. Read the repo before judging. You do not rewrite the spec.
+Answer two questions, in order, and stop at the first failing verdict. Verify the spec's claims against Findings; spot-check the repo only where Findings is silent or you suspect it is wrong, and record what you find. You do not rewrite the spec.
 
 Decisions recorded as settled in the notes stay settled unless you have new evidence.
 
@@ -49,7 +49,7 @@ Check that:
 - two implementers would produce the same thing from it
 - every criterion has a proof that can actually be run in this repo
 - nothing needed is silent, and nothing it asks for is extra
-- its claims about existing behavior are true (read enough of the repo to know)
+- its claims about existing behavior are true (check Findings, then the repo where Findings is silent)
 
 Write each finding as: the section, the offending bit quoted (blockquote or fence), the problem, the specific fix. Split findings into **Must fix** (blocks pass) and **Should fix**. Report only things that would make the built feature worse, wrong, or ambiguous — no format or preference nits, no praise. Lists may be "None."
 

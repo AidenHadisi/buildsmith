@@ -17,7 +17,7 @@ Requires the `buildsmith` command. If it is missing, install it with `bun add -g
 
 ### 1. Explore
 
-Dispatch read-only subagents in parallel: what exists today, where this would live, sibling features, conventions, constraints. Send a researcher to the web when the request names something unfamiliar.
+Dispatch read-only subagents in parallel: what exists today, where this would live, sibling features, conventions, constraints. Send researchers to the web when the request names something unfamiliar. Keep what they return; step 4 records it as findings so no later step has to look again.
 
 ### 2. Interview
 
@@ -30,11 +30,10 @@ It is pasted into every brief and is the one record of the user's intent that su
 - the problem and why it matters
 - what the user asked for, in their words where possible
 - constraints they stated
-- what you found in the repo that shapes the work
 - references they pointed at (files, screens, links, examples)
 - decisions made in conversation
 
-No criteria and no design; those belong to the spec and the architecture.
+No criteria, no design, and no repo facts; those belong to the spec, the architecture, and the findings.
 
 ### 4. Create
 
@@ -46,6 +45,14 @@ buildsmith task create --id <slug> --title "<title>" <<'EOF'
 EOF
 git switch -c feat/<slug>
 buildsmith task update <slug> --branch feat/<slug>
+```
+
+Then record what Explore found. Findings are facts about the repo — paths, current behavior, siblings, conventions, things checked and found absent — and every later brief carries them.
+
+```sh
+buildsmith note add <slug> --author planner --target findings <<'EOF'
+- <fact, with the path or command that shows it>
+EOF
 ```
 
 The first `step` is `write-project` until `.buildsmith/project.md` has real content. That step researches the repo and writes the file; never fill it in by hand.
@@ -89,5 +96,5 @@ EOF
 
 - **You are the planner.** You write the spec and architecture (with its slices) alongside the user and rule on their reviews. Approving the architecture creates the slices; `slice add` is only for fix slices after a failed verification.
 - **You never** review your own doc, write feature code, polish the diff, judge a diff, or research `project.md` yourself. Those steps are always `dispatch`.
-- **Protect your context.** Reading code, searching the repo, and researching go to read-only subagents, several in parallel when independent. Read a file yourself only when a ruling depends on its exact contents.
+- **Protect your context.** Reading code, searching the repo, and researching go to read-only subagents, several in parallel when independent. Read a file yourself only when a ruling depends on its exact contents. Check the brief's Findings before dispatching, and record what readers return as findings.
 - **The board is the truth.** Subagent return lines are informational. Never edit `.buildsmith/` by hand.

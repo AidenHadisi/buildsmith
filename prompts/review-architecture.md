@@ -32,7 +32,7 @@ You are reviewing the architecture and its slices.
 
 ## Your job
 
-Answer two questions, in order, and stop at the first failing verdict. Read the repo before judging. You do not rewrite the architecture.
+Answer two questions, in order, and stop at the first failing verdict. Verify the architecture's claims against Findings; spot-check the repo only where Findings is silent or you suspect it is wrong, and record what you find. You do not rewrite the architecture.
 
 Decisions recorded as settled in the notes stay settled unless you have new evidence.
 
@@ -53,7 +53,7 @@ The design:
 - two implementers would produce the same components from it
 - every spec requirement has an owner
 - nothing it does is beyond what the spec asks
-- the files, siblings, and packages it names are real (read enough of the repo to know)
+- the files, siblings, and packages it names are real (check Findings, then the repo where Findings is silent)
 
 The slices:
 

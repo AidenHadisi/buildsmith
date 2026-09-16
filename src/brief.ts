@@ -47,6 +47,7 @@ async function vars(root: string, task: TaskRecord, action: string, reason: stri
   const spec = kind === "spec" ? doc : await readDoc(root, task.id, "spec");
   const verification = await readDoc(root, task.id, "verification");
   const notes = await listNotes(root, task.id, noteTarget(action, kind, slice));
+  const findings = await listNotes(root, task.id, "findings");
   const [designStandards, specStandards, taskCard, delegate] = await Promise.all([
     standard(root, "design"),
     standard(root, "spec"),
@@ -67,15 +68,21 @@ async function vars(root: string, task: TaskRecord, action: string, reason: stri
     verification: verification?.body.trimEnd() ?? "(none)",
     design_standards: designStandards,
     spec_standards: specStandards,
-    delegate: delegate.text,
     notes:
       notes
         .map((n) => `### ${n.author}${n.verdict ? ` · ${n.verdict}` : ""}\n\n${n.body}`)
         .join("\n\n") || "(none)",
+    findings:
+      findings.map((n) => `### ${n.author} · ${n.at.slice(0, 10)}\n\n${n.body}`).join("\n\n") ||
+      "(none)",
     cli,
     extra: (await optional(repoPath(root, `${action}.extra`)))?.trimEnd() ?? "",
   };
-  return { ...slots, task: render(taskCard.text, slots, taskCard.path) };
+  return {
+    ...slots,
+    task: render(taskCard.text, slots, taskCard.path),
+    delegate: render(delegate.text, slots, delegate.path),
+  };
 }
 
 function noteTarget(action: string, kind: string, slice?: SliceRecord): string {

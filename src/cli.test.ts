@@ -591,6 +591,64 @@ describe("brief command", () => {
     expect(brief.text).toContain("The ladder");
   });
 
+  test("findings notes render under ## Findings on write-spec and review-spec, outside ## Notes", async () => {
+    const { dir, a } = await setup();
+    await ok(
+      dir,
+      ["note", "add", a.id, "--author", "planner", "--target", "findings"],
+      "Found `src/x.ts`.",
+    );
+
+    const write = JSON.parse((await ok(dir, ["brief", a.id])).stdout);
+    expect(write.action).toBe("write-spec");
+    expect(write.text).toContain("## Findings");
+    expect(write.text).toContain("### planner · ");
+    expect(write.text).toContain("Found `src/x.ts`.");
+    const notes = write.text.slice(
+      write.text.indexOf("## Notes"),
+      write.text.indexOf("## Standards"),
+    );
+    expect(notes).toContain("(none)");
+    expect(notes).not.toContain("Found `src/x.ts`.");
+
+    await ok(dir, ["doc", "write", a.id, "spec"], "# Spec\n");
+    const review = JSON.parse((await ok(dir, ["brief", a.id])).stdout);
+    expect(review.action).toBe("review-spec");
+    expect(review.text).toContain("## Findings");
+    expect(review.text).toContain("Found `src/x.ts`.");
+  });
+
+  test("findings are carried to work-slice and absent from approve-spec", async () => {
+    const { dir, a } = await setup();
+    await ok(
+      dir,
+      ["note", "add", a.id, "--author", "planner", "--target", "findings"],
+      "Found `src/x.ts`.",
+    );
+    await ok(dir, ["doc", "write", a.id, "spec"], "# Spec\n");
+    await ok(dir, ["doc", "status", a.id, "spec", "critiqued"]);
+    await ok(dir, ["doc", "status", a.id, "spec", "reviewed"]);
+
+    const approve = JSON.parse((await ok(dir, ["brief", a.id])).stdout);
+    expect(approve.action).toBe("approve-spec");
+    expect(approve.text).not.toContain("## Findings");
+    expect(approve.text).not.toContain("Found `src/x.ts`.");
+
+    await ok(dir, ["doc", "status", a.id, "spec", "approved"]);
+    await ok(
+      dir,
+      ["doc", "write", a.id, "architecture"],
+      "# Arch\n\n## Slices\n\n### One\n\nGoal\n\n**Criteria:**\n\n- it works\n",
+    );
+    for (const status of ["critiqued", "reviewed", "approved"]) {
+      await ok(dir, ["doc", "status", a.id, "architecture", status]);
+    }
+    const slice = JSON.parse((await ok(dir, ["brief", a.id])).stdout);
+    expect(slice.action).toBe("work-slice");
+    expect(slice.text).toContain("## Findings");
+    expect(slice.text).toContain("Found `src/x.ts`.");
+  });
+
   test(".extra.md fills {{extra}} without ejecting", async () => {
     const { dir, a } = await setup();
     await run(["doc", "write", a.id, "spec"], { cwd: dir, stdin: "# Spec\n" });
