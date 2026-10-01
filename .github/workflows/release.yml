@@ -22,7 +22,7 @@ jobs:
           for target in bun-darwin-arm64 bun-darwin-x64 bun-linux-x64 bun-linux-arm64 bun-windows-x64; do
             bun build-bin.ts --target "$target"
           done
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: release/*
           prerelease: ${{ contains(github.ref_name, '-') }}
